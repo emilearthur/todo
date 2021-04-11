@@ -86,17 +86,41 @@ def create_users_table() -> None:
             ON users
             FOR EACH ROW
         EXECUTE PROCEDURE update_updated_at_column()
+        """)
+
+
+def create_profle_table() -> None:
+    op.create_table(
+        "profiles",
+        sa.Column("id", sa.Integer, primary_key=True),
+        # sa.Column("full_name", sa.Text, nullable=True),
+        sa.Column("firstname", sa.Text, nullable=True),
+        sa.Column("lastname", sa.Text, nullable=True),
+        sa.Column("middlename", sa.Text, nullable=True),
+        sa.Column("phone_number", sa.Text, nullable=True),
+        sa.Column("bio", sa.Text, nullable=True, server_default=""),
+        sa.Column("image", sa.Text, nullable=True),
+        sa.Column("user_id", sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE")),
+        *timestamps(),)
+    op.execute(
         """
-    )
+        CREATE TRIGGER update_profiles_modtime
+            BEFORE UPDATE
+            ON profiles
+            FOR EACH ROW
+        EXECUTE PROCEDURE update_updated_at_column()
+        """)
 
 
 def upgrade() -> None:
     create_updated_at_trigger()
     create_todos_table()
     create_users_table()
+    create_profle_table()
 
 
 def downgrade() -> None:
+    op.drop_table("profiles")
     op.drop_table("users")
     op.drop_table("todos")
     op.execute("DROP FUNCTION update_updated_at_column")
