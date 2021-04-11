@@ -1,7 +1,7 @@
 import pytest
 import jwt
 
-from typing import List, Union, Type, Optional
+from typing import Union, Type, Optional
 from pydantic import ValidationError
 
 from httpx import AsyncClient
@@ -11,7 +11,7 @@ from databases import Database
 from starlette.datastructures import Secret
 from app.core.config import ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ALGORITHM, JWT_AUDIENCE, SECRET_KEY
 
-from app.models.user import UserCreate, UserInDB, UserPublic
+from app.models.user import UserInDB, UserPublic
 # from app.models.token import JWTMeta, JWTCreds, JWTPayload
 from app.db.repositories.users import UsersRepository
 from app.services import auth_service
@@ -45,13 +45,13 @@ class TestUserRegistraton:
         assert res.status_code == status.HTTP_201_CREATED
 
         # ensure the user exits in db now
-        user_in_db = await users_repo.get_user_by_email(email=new_user["email"])
+        user_in_db = await users_repo.get_user_by_email(email=new_user["email"], populate=False)
         assert user_in_db is not None
         assert user_in_db.email == new_user["email"]
         assert user_in_db.username == new_user["username"]
 
         # check the user returned in the response is equal to the user in the db
-        created_user = UserPublic(**res.json()).dict(exclude={"access_token"})
+        created_user = UserPublic(**res.json()).dict(exclude={"access_token", "profile"})
         assert created_user == user_in_db.dict(exclude={"password", "salt"})
 
     @pytest.mark.parametrize(
@@ -87,7 +87,7 @@ class TestUserRegistraton:
         assert res.status_code == status.HTTP_201_CREATED
 
         # verify password is hashed in db and verifying auth
-        user_in_db = await user_repo.get_user_by_email(email=new_user["email"])
+        user_in_db = await user_repo.get_user_by_email(email=new_user["email"], populate=False)
         assert user_in_db is not None
         assert user_in_db.salt is not None and user_in_db.salt != "123"
         assert user_in_db.password != new_user["password"]

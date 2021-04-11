@@ -65,7 +65,8 @@ class TodosRepository(BaseRepository):
         if todo_updated_params.priority is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid priority type, Cannot be None")
         try:
-            todo_updated = await self.db.fetch_one(query=UPDATE_TODO_BY_ID_QUERY, values=todo_updated_params.dict())
+            todo_updated = await self.db.fetch_one(query=UPDATE_TODO_BY_ID_QUERY,
+                                                   values=todo_updated_params.dict(exclude={"created_at"}))
             return TodoInDB(**todo_updated)
         except Exception as e:
             print(e)

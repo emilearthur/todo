@@ -3,8 +3,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from app.api.dependencies.database import get_repository
 from app.api.dependencies.auth import get_current_active_user
+
 from app.models.user import UserCreate, UserInDB, UserPublic
 from app.models.token import AccessToken
+
 from app.db.repositories.users import UsersRepository
 from app.services import auth_service
 
@@ -18,7 +20,7 @@ async def register_new_user(new_user: UserCreate = Body(..., embed=True),
     created_user = await user_repo.register_new_user(new_user=new_user)
     access_token = AccessToken(access_token=auth_service.create_access_token_for_user(user=created_user),
                                token_type="bearer")
-    return UserPublic(**created_user.dict(), access_token=access_token)
+    return UserPublic(**created_user.copy(update={"access_token": access_token}).dict())
 
 
 @router.post("/login/token/", response_model=AccessToken, name="users:login-email-and-password")
@@ -30,9 +32,9 @@ async def user_login_email_and_password(user_repo: UsersRepository = Depends(get
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authenication unsuccessful",
                             headers={"WWW-Authenticate": "Bearer"},)
     access_token = AccessToken(access_token=auth_service.create_access_token_for_user(user=user), token_type="bearer")
-    return access_token
+    return AccessToken(**access_token.dict())
 
 
 @router.get("/me/", response_model=UserPublic, name="users:get-current-user")
 async def get_current_user(current_user: UserInDB = Depends(get_current_active_user)) -> UserPublic:
-    return current_user
+    return UserPublic(**current_user.dict())

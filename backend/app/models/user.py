@@ -3,6 +3,7 @@ from typing import Optional
 from pydantic import EmailStr, constr
 
 from app.models.core import DateTimeModelMixin, IDModelMixin, CoreModel
+from app.models.profile import ProfilePublic
 from app.models.token import AccessToken
 
 regex = "^[a-zA-Z0-9_-]+$"
@@ -43,3 +44,4 @@ class UserInDB(IDModelMixin, DateTimeModelMixin, UserBase):
 
 class UserPublic(IDModelMixin, DateTimeModelMixin, UserBase):
     access_token: Optional[AccessToken]
+    profile: Optional[ProfilePublic]

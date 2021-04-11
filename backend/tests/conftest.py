@@ -88,6 +88,19 @@ async def test_user(db: Database,) -> UserInDB:
 
 
 @pytest.fixture
+async def test_user2(db: Database) -> UserInDB:
+    new_user = UserCreate(email="emilextrig@hotmail.com",
+                          username="emilextrig",
+                          password="somepassword",)
+    user_repo = UsersRepository(db)
+
+    existing_user = await user_repo.get_user_by_email(email=new_user.email)
+    if existing_user:
+        return existing_user
+    return await user_repo.register_new_user(new_user=new_user)
+
+
+@pytest.fixture
 def authorized_client(client: AsyncClient, test_user: UserInDB) -> AsyncClient:
     access_token = auth_service.create_access_token_for_user(user=test_user, secret_key=str(SECRET_KEY))
     client.headers = {**client.headers, "Authorization": f"{JWT_TOKEN_PREFIX} {access_token}"}
