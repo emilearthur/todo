@@ -1,3 +1,4 @@
+"""Router for users."""
 from fastapi import APIRouter, Depends, HTTPException, Body, status
 from fastapi.security import OAuth2PasswordRequestForm
 
@@ -17,6 +18,7 @@ router = APIRouter()
 @router.post("/", response_model=UserPublic, name="users:register-new-user", status_code=status.HTTP_201_CREATED)
 async def register_new_user(new_user: UserCreate = Body(..., embed=True),
                             user_repo: UsersRepository = Depends(get_repository(UsersRepository)),) -> UserPublic:
+    """Register new user."""
     created_user = await user_repo.register_new_user(new_user=new_user)
     access_token = AccessToken(access_token=auth_service.create_access_token_for_user(user=created_user),
                                token_type="bearer")
@@ -27,6 +29,7 @@ async def register_new_user(new_user: UserCreate = Body(..., embed=True),
 async def user_login_email_and_password(user_repo: UsersRepository = Depends(get_repository(UsersRepository)),
                                         form_data: OAuth2PasswordRequestForm = Depends(OAuth2PasswordRequestForm)
                                         ) -> AccessToken:
+    """Login new user and get access token."""
     user = await user_repo.authenticate_user(email=form_data.username, password=form_data.password)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authenication unsuccessful",
@@ -37,4 +40,5 @@ async def user_login_email_and_password(user_repo: UsersRepository = Depends(get
 
 @router.get("/me/", response_model=UserPublic, name="users:get-current-user")
 async def get_current_user(current_user: UserInDB = Depends(get_current_active_user)) -> UserPublic:
+    """Get current user logged in."""
     return UserPublic(**current_user.dict())

@@ -1,0 +1,8 @@
+Todos:
+    - Add user_id to todo 
+        - Update db with user_id as foreign key. 
+    - Add user registeration via google autj.
+    - Add todo share feature
+    - Add analytics to todo
+        - add an endpoint to summarize notes. 
+        - 

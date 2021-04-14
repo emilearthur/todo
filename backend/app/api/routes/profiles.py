@@ -1,7 +1,8 @@
+"""Routes for profile."""
 from fastapi import APIRouter, Path, Body, Depends, HTTPException, status
 
 from app.models.profile import ProfileUpdate, ProfilePublic
-from app.models.user import UserCreate, UserInDB, UserUpdate, UserPublic
+from app.models.user import UserInDB
 
 from app.db.repositories.profiles import ProfilesRepository
 
@@ -17,6 +18,7 @@ async def get_profile_by_username(*, username: str = Path(...,
                                   current_user: UserInDB = Depends(get_current_active_user),
                                   profile_repo: ProfilesRepository = Depends(get_repository(ProfilesRepository))
                                   ) -> ProfilePublic:
+    """Get profile by username route."""
     profile = await profile_repo.get_profile_by_username(username=username)
     if not profile:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No profile found with that username.")
@@ -28,5 +30,6 @@ async def update_own_profile(profile_update: ProfileUpdate = Body(..., embed=Tru
                              current_user: UserInDB = Depends(get_current_active_user),
                              profile_repo: ProfilesRepository = Depends(get_repository(ProfilesRepository)),
                              ) -> ProfilePublic:
+    """Upate pofile route."""
     updated_profile = await profile_repo.update_profile(profile_update=profile_update, requesting_user=current_user)
     return ProfilePublic(**updated_profile.dict())

@@ -53,6 +53,7 @@ def create_todos_table() -> None:
         sa.Column("notes", sa.Text, nullable=True),
         sa.Column("priority", sa.Text, nullable=False, server_default="high"),
         sa.Column("duedate", sa.Date, nullable=False, index=True),
+        sa.Column("owner", sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE")),
         *timestamps(),
     )
     op.execute(
@@ -114,13 +115,13 @@ def create_profle_table() -> None:
 
 def upgrade() -> None:
     create_updated_at_trigger()
-    create_todos_table()
     create_users_table()
     create_profle_table()
+    create_todos_table()
 
 
 def downgrade() -> None:
+    op.drop_table("todos")
     op.drop_table("profiles")
     op.drop_table("users")
-    op.drop_table("todos")
     op.execute("DROP FUNCTION update_updated_at_column")
