@@ -21,4 +21,4 @@ httpx==0.16.1       #provides an async request client for testing endpoints
 asgi-lifespan==1.0.1
 pytest-sugar==0.9.4  # allows testing async application without having to spin up ASGI server
 pytest-cov==2.11.1
-flake8
+pandas==1.2.3

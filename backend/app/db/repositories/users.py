@@ -1,3 +1,5 @@
+"""DB repo for profile."""
+
 from typing import Optional
 from pydantic import EmailStr
 from fastapi import HTTPException, status
@@ -33,15 +35,20 @@ REGISTER_NEW_USER_QUERY = """
 
 
 class UsersRepository(BaseRepository):
+    """class for users."""
+
     def __init__(self, db: Database) -> None:
+        """Initialize db, auth_path and profiles_repo."""
         super().__init__(db)
         self.auth_service = auth_service
         self.profiles_repo = ProfilesRepository(db)
 
     async def populate_user(self, *, user: UserInDB) -> UserInDB:
+        """Get profile of user and add to user profile."""
         return UserPublic(**user.dict(), profile=await self.profiles_repo.get_profile_by_user_id(user_id=user.id))
 
     async def get_user_by_email(self, *, email: EmailStr, populate: bool = True) -> UserInDB:
+        """Get user by email."""
         user_record = await self.db.fetch_one(query=GET_USER_BY_EMAIL_QUERY, values={"email": email})
         if user_record:
             user = UserInDB(**user_record)
@@ -50,6 +57,7 @@ class UsersRepository(BaseRepository):
             return user
 
     async def get_user_by_username(self, *, username: str, populate: bool = True) -> UserInDB:
+        """Get user by username."""
         user_record = await self.db.fetch_one(query=GET_USER_BY_USERNAME_QUERY, values={"username": username})
         if user_record:
             user = UserInDB(**user_record)
@@ -58,6 +66,7 @@ class UsersRepository(BaseRepository):
             return user
 
     async def register_new_user(self, *, new_user: UserCreate) -> UserInDB:
+        """Register new user."""
         if await self.get_user_by_email(email=new_user.email):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail=f"{new_user.email} is already taken. Register with a new email")
@@ -73,6 +82,7 @@ class UsersRepository(BaseRepository):
         return await self.populate_user(user=UserInDB(**created_user))
 
     async def authenticate_user(self, *, email: EmailStr, password: str) -> Optional[UserInDB]:
+        """Authenticate user."""
         user = await self.get_user_by_email(email=email, populate=False)
         if not user:
             return None

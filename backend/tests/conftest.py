@@ -3,6 +3,7 @@ import os
 import datetime
 
 import pytest
+from typing import List
 from asgi_lifespan import LifespanManager
 
 from fastapi import FastAPI
@@ -65,13 +66,13 @@ def new_todo():
 
 
 @pytest.fixture
-async def test_todo(db: Database) -> TodoInDB:
+async def test_todo(db: Database, test_user: UserInDB) -> TodoInDB:
     todo_repo = TodosRepository(db)
     new_todo = TodoCreate(name="test todo",
                           notes="test notes",
                           priority="critical",
                           duedate=datetime.date.today())
-    return await todo_repo.create_todo(new_todo=new_todo)
+    return await todo_repo.create_todo(new_todo=new_todo, requesting_user=test_user)
 
 
 @pytest.fixture
@@ -105,3 +106,13 @@ def authorized_client(client: AsyncClient, test_user: UserInDB) -> AsyncClient:
     access_token = auth_service.create_access_token_for_user(user=test_user, secret_key=str(SECRET_KEY))
     client.headers = {**client.headers, "Authorization": f"{JWT_TOKEN_PREFIX} {access_token}"}
     return client
+
+
+@pytest.fixture
+async def test_todos_list(db: Database, test_user2: UserInDB) -> List[TodoInDB]:
+    todo_repo = TodosRepository(db)
+    return [await todo_repo.create_todo(
+        new_todo=TodoCreate(name=f"test todo {i}",
+                            notes="some notes", priority="critical",
+                            duedate=datetime.date.today()),
+        requesting_user=test_user2) for i in range(5)]
