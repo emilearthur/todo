@@ -113,15 +113,53 @@ def create_profle_table() -> None:
         """)
 
 
+def create_note_table() -> None:
+    op.create_table(
+        "notes",
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("notes_summary", sa.Text, nullable=True),
+        sa.Column("todo_id", sa.Integer, sa.ForeignKey("todos.id", ondelete="CASCADE")),
+        *timestamps(),)
+    op.execute(
+        """
+        CREATE TRIGGER update_notes_modtime
+            BEFORE UPDATE
+            ON notes
+            FOR EACH ROW
+        EXECUTE PROCEDURE update_updated_at_column()
+        """)
+
+
+def create_email_verification_table() -> None:
+    op.create_table(
+        "email_verification",
+        sa.Column("generated_code", sa.Text, nullable=False, index=True),
+        sa.Column("user_id", sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True),
+        *timestamps(),)
+    op.create_primary_key("pk_email_verification", "email_verification", ["generated_code", "user_id"])
+    op.execute(
+        """
+        CREATE TRIGGER update_email_modtime
+            BEFORE UPDATE
+            ON email_verification
+            FOR EACH ROW
+        EXECUTE PROCEDURE update_updated_at_column()
+        """)
+
+
 def upgrade() -> None:
     create_updated_at_trigger()
     create_users_table()
     create_profle_table()
+    create_email_verification_table()
     create_todos_table()
+    create_note_table()
 
 
 def downgrade() -> None:
+    op.drop_table("notes")
     op.drop_table("todos")
     op.drop_table("profiles")
+    op.drop_table("email_verification")
     op.drop_table("users")
     op.execute("DROP FUNCTION update_updated_at_column")

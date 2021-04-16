@@ -1,8 +1,16 @@
 Todos:
+    - currently doing:
+        - Adding noted enpdpoint done with db
     - Add user_id to todo 
         - Update db with user_id as foreign key. 
     - Add user registeration via google autj.
     - Add todo share feature
-    - Add analytics to todo
+        - User shares todo with another.
+        - The other accepts/rescind the todo
+            - If other accepts todo:
+                - updated that todo.status has been accpeted.
+                - add todo to user's todo. 
+                - else todo.staus is rescinded and todo and set due date is set to date it was rescinded.
+    - Add notes summary endpoint to todo
         - add an endpoint to summarize notes. 
         - 

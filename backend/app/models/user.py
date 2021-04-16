@@ -56,3 +56,9 @@ class UserPublic(IDModelMixin, DateTimeModelMixin, UserBase):
 
     access_token: Optional[AccessToken]
     profile: Optional[ProfilePublic]
+
+
+class UserEmailVerifcationUpdate(CoreModel):
+    """Update user email verification."""
+
+    email_verified: bool = True
