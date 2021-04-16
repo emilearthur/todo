@@ -1,6 +1,7 @@
 """Router for users."""
 from fastapi import APIRouter, Depends, HTTPException, Body, status
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import JSONResponse
 
 from app.api.dependencies.database import get_repository
 from app.api.dependencies.auth import get_current_active_user
@@ -42,3 +43,37 @@ async def user_login_email_and_password(user_repo: UsersRepository = Depends(get
 async def get_current_user(current_user: UserInDB = Depends(get_current_active_user)) -> UserPublic:
     """Get current user logged in."""
     return UserPublic(**current_user.dict())
+
+
+# TODO: Try and user updating details.
+# @router.put("/me/", response_model=UserPublic, name="users:update-own-detials")
+# async def update_own_details(user_update: UserCreate = Body(..., embed=True),
+#                              current_user: UserInDB = Depends(get_current_active_user),
+#                              user_repo: UsersRepository = Depends(get_repository(UsersRepository)),) -> UserPublic:
+#     """Update user route."""
+#     updated_user_details = await user_repo.update_user(user_update=user_update, requesting_user=current_user)
+#     return UserPublic(**updated_user_details.dict())
+
+
+@router.get("/me/send_verification_email/", name="users:send-email-verification")
+async def send_email_verification(current_user: UserInDB = Depends(get_current_active_user),
+                                  user_repo: UsersRepository = Depends(get_repository(UsersRepository)),
+                                  ) -> JSONResponse:
+    """Send user verification email route."""
+    sent_user = await user_repo.send_verification_email(requesting_user=current_user)
+    if sent_user is None:
+        content = {"message": f"Auth code already sent to {current_user.email}"}
+    else:
+        content = {"message": f"email has been sent  to {sent_user}"}
+    return JSONResponse(status_code=200, content=content)
+
+
+@router.get("/me/verify/{verification_code}", response_model=UserPublic, name="users:email-verification")
+async def update_own_details(verification_code: str,
+                             current_user: UserInDB = Depends(get_current_active_user),
+                             user_repo: UsersRepository = Depends(get_repository(UsersRepository)),) -> UserPublic:
+    """Update user route."""
+    verified_user = await user_repo.verify_email(requesting_user=current_user, verification_code=verification_code)
+    if not verified_user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Verfication Code")
+    return UserPublic(**verified_user.dict())

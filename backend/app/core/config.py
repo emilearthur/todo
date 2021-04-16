@@ -22,6 +22,10 @@ POSTGRES_SERVER = config("POSTGRES_SERVER", cast=str, default="db")
 POSTGRES_PORT = config("POSTGRES_PORT", cast=str, default="5432")
 POSTGRES_DB = config("POSTGRES_DB", cast=str)
 
+EMAIL_ADDR = config("EMAIL", cast=str)
+EMAIL_PWD = config("EMAIL_PWD", cast=str)
+EMAIL_USERNAME = config("EMAIL_USERNAME", cast=str, default="EMILEX TRIG")
+
 DATABASE_URL = config(
     "DATABASE_URL",
     cast=DatabaseURL,
