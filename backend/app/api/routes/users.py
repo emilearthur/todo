@@ -5,6 +5,8 @@ from fastapi.responses import JSONResponse
 
 from app.api.dependencies.database import get_repository
 from app.api.dependencies.auth import get_current_active_user
+from app.db.repositories.comments import CommentsRepository
+from app.models.comment import CommentPublic
 
 from app.models.user import UserCreate, UserInDB, UserPublic
 from app.models.token import AccessToken
@@ -12,6 +14,7 @@ from app.models.token import AccessToken
 from app.db.repositories.users import UsersRepository
 from app.services import auth_service
 
+from typing import List
 
 router = APIRouter()
 
@@ -77,3 +80,12 @@ async def update_own_details(verification_code: str,
     if not verified_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Verfication Code")
     return UserPublic(**verified_user.dict())
+
+
+@router.get("/comments/", response_model=List[CommentPublic], name="users:comments")
+async def get_user_comments(current_user: UserInDB = Depends(get_current_active_user),
+                            comments_repo: CommentsRepository = Depends(get_repository(CommentsRepository)),
+                            user_repo: UsersRepository = Depends(get_repository(UsersRepository)),
+                            ) -> List[CommentPublic]:
+    """Get all user comments."""
+    return await comments_repo.get_users_comments(requesting_user=current_user)
