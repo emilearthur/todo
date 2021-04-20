@@ -90,7 +90,6 @@ class CommentsRepository(BaseRepository):
     async def update_comments(self, *, comment: CommentInDB, comment_update: CommentUpdate) -> CommentInDB:
         """Update User comments."""
         comment_updated_params = comment.copy(update=comment_update.dict(exclude_unset=True))
-        print(comment_updated_params)
         comment_updated = await self.db.fetch_one(query=UPDATE_COMMENT_BY_ID_QUERY,
                                                   values=comment_updated_params.dict(exclude={"comment_owner",
                                                                                               "created_at",
