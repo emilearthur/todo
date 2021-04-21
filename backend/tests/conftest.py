@@ -92,6 +92,14 @@ async def test_comment(db: Database, test_user: UserInDB, test_todo: TodoInDB) -
 
 
 @pytest.fixture
+async def test_comment_2(db: Database, test_user2: UserInDB, test_todo: TodoInDB) -> CommentInDB:
+    comments_repo = CommentsRepository(db)
+    new_comment = CommentCreate(body="test comments",
+                                todo_id=test_todo.id)
+    return await comments_repo.create_comment(new_comment=new_comment, requesting_user=test_user2)
+
+
+@pytest.fixture
 async def test_user(db: Database,) -> UserInDB:
     new_user = UserCreate(email="frederickauthur@hotmail.com",
                           username="frederickauthur",

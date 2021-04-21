@@ -82,7 +82,7 @@ async def update_own_details(verification_code: str,
     return UserPublic(**verified_user.dict())
 
 
-@router.get("/comments/", response_model=List[CommentPublic], name="users:comments")
+@router.get("/comments/", response_model=List[CommentPublic], name="users:get-user-comments")
 async def get_user_comments(current_user: UserInDB = Depends(get_current_active_user),
                             comments_repo: CommentsRepository = Depends(get_repository(CommentsRepository)),
                             user_repo: UsersRepository = Depends(get_repository(UsersRepository)),
