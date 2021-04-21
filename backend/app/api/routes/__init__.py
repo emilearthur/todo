@@ -1,3 +1,5 @@
+"""API routes."""
+
 from fastapi import APIRouter
 
 from app.api.routes.todos import router as todos_router
