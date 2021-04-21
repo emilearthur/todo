@@ -15,9 +15,11 @@ from alembic.config import Config
 
 from app.db.repositories.todos import TodosRepository
 from app.db.repositories.users import UsersRepository
+from app.db.repositories.comments import CommentsRepository
 
 from app.models.todo import TodoCreate, TodoInDB
 from app.models.user import UserCreate, UserInDB
+from app.models.comment import CommentCreate, CommentInDB
 
 from app.core.config import SECRET_KEY, JWT_TOKEN_PREFIX
 from app.services import auth_service
@@ -76,6 +78,28 @@ async def test_todo(db: Database, test_user: UserInDB) -> TodoInDB:
 
 
 @pytest.fixture
+def new_comment(test_todo: TodoInDB):
+    return CommentCreate(body="test comments",
+                         todo_id=test_todo.id)
+
+
+@pytest.fixture
+async def test_comment(db: Database, test_user: UserInDB, test_todo: TodoInDB) -> CommentInDB:
+    comments_repo = CommentsRepository(db)
+    new_comment = CommentCreate(body="test comments",
+                                todo_id=test_todo.id)
+    return await comments_repo.create_comment(new_comment=new_comment, requesting_user=test_user)
+
+
+@pytest.fixture
+async def test_comment_2(db: Database, test_user2: UserInDB, test_todo: TodoInDB) -> CommentInDB:
+    comments_repo = CommentsRepository(db)
+    new_comment = CommentCreate(body="test comments",
+                                todo_id=test_todo.id)
+    return await comments_repo.create_comment(new_comment=new_comment, requesting_user=test_user2)
+
+
+@pytest.fixture
 async def test_user(db: Database,) -> UserInDB:
     new_user = UserCreate(email="frederickauthur@hotmail.com",
                           username="frederickauthur",
@@ -115,4 +139,13 @@ async def test_todos_list(db: Database, test_user2: UserInDB) -> List[TodoInDB]:
         new_todo=TodoCreate(name=f"test todo {i}",
                             notes="some notes", priority="critical",
                             duedate=datetime.date.today()),
+        requesting_user=test_user2) for i in range(5)]
+
+
+@pytest.fixture
+async def test_comment_list(db: Database, test_user2: UserInDB, test_todos_list: List[TodoInDB]) -> List[CommentInDB]:
+    comments_repo = CommentsRepository(db)
+    return [await comments_repo.create_comment(
+        new_comment=CommentCreate(body=f"test comment {i}",
+                                  todo_id=test_todos_list[i].id),
         requesting_user=test_user2) for i in range(5)]

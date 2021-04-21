@@ -6,8 +6,10 @@ from fastapi import APIRouter, Body, Depends, status
 
 from app.models.todo import TodoCreate, TodoPublic, TodoUpdate, TodoInDB
 from app.models.user import UserInDB
+from app.models.comment import CommentInDB
 
 from app.db.repositories.todos import TodosRepository
+from app.db.repositories.comments import CommentsRepository
 
 from app.api.dependencies.database import get_repository
 from app.api.dependencies.auth import get_current_active_user
@@ -19,18 +21,18 @@ router = APIRouter()
 
 @router.post("/", response_model=TodoPublic, name="todos:create-todo", status_code=status.HTTP_201_CREATED)
 async def create_new_todo(new_todo: TodoCreate = Body(..., embed=True),
-                          todo_repo: TodosRepository = Depends(get_repository(TodosRepository)),
+                          todos_repo: TodosRepository = Depends(get_repository(TodosRepository)),
                           current_user: UserInDB = Depends(get_current_active_user),) -> TodoPublic:
     """Post Method to Create TODOs."""
-    created_todo = await todo_repo.create_todo(new_todo=new_todo, requesting_user=current_user)
+    created_todo = await todos_repo.create_todo(new_todo=new_todo, requesting_user=current_user)
     return TodoPublic(**created_todo.dict())
 
 
 @router.get("/", response_model=List[TodoPublic], name="todos:list-all-user-todos")
 async def get_all_todos(current_user: UserInDB = Depends(get_current_active_user),
-                        todo_repo: TodosRepository = Depends(get_repository(TodosRepository)),) -> List[TodoPublic]:
+                        todos_repo: TodosRepository = Depends(get_repository(TodosRepository)),) -> List[TodoPublic]:
     """Get Method to get all users TODOs."""
-    return await todo_repo.list_all_user_todos(requesting_user=current_user)
+    return await todos_repo.list_all_user_todos(requesting_user=current_user)
 
 
 @router.get("/{todo_id}/", response_model=TodoPublic, name="todos:get-todo-by-id")
@@ -54,3 +56,11 @@ async def delete_by_id(todo: TodoInDB = Depends(get_todo_by_id_from_path),
                        todos_repo: TodosRepository = Depends(get_repository(TodosRepository)),) -> int:
     """Delete Method to delete TODOs by id."""
     return await todos_repo.delete_todo_by_id(todo=todo)
+
+
+@router.get("/{todo_id}/comments/", response_model=List[CommentInDB], name="todos:list-all-todo-comments")
+async def get_all_comments(todo: TodoInDB = Depends(get_todo_by_id_from_path),
+                           comments_repo: CommentsRepository = Depends(get_repository(CommentsRepository)),
+                           ) -> List[CommentInDB]:
+    """List all comment in todos."""
+    return await comments_repo.get_todo_comments(todo=todo)

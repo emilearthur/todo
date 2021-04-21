@@ -48,9 +48,9 @@ class TestCreateTodo:
         assert created_todo.duedate == new_todo.duedate
         assert created_todo.owner == test_user.id
 
-    async def test_unauthorized_user_unable_to_create_cleaning(self, app: FastAPI,
-                                                               client: AsyncClient,
-                                                               new_todo: TodoCreate) -> None:
+    async def test_unauthorized_user_unable_to_create_todo(self, app: FastAPI,
+                                                           client: AsyncClient,
+                                                           new_todo: TodoCreate) -> None:
         res = await client.post(app.url_path_for("todos:create-todo"),
                                 json={"new_todo": jsonable_encoder(new_todo.dict())})
         assert res.status_code == status.HTTP_401_UNAUTHORIZED
@@ -190,11 +190,11 @@ class TestUpdateTodo:
             (1, {"priority": None}, 400),
         ),
     )
-    async def test_update_cleaning_with_invalid_input_throws_error(self, app: FastAPI,
-                                                                   authorized_client: AsyncClient,
-                                                                   id: int,
-                                                                   payload: Dict[str, Optional[str]],
-                                                                   status_code: int,) -> None:
+    async def test_update_todo_with_invalid_input_throws_error(self, app: FastAPI,
+                                                               authorized_client: AsyncClient,
+                                                               id: int,
+                                                               payload: Dict[str, Optional[str]],
+                                                               status_code: int,) -> None:
         todo_update = {"todo_update": payload}
         res = await authorized_client.put(app.url_path_for("todos:update-todo-by-id", todo_id=id),
                                           json=todo_update)
@@ -202,9 +202,9 @@ class TestUpdateTodo:
 
 
 class TestDeleteTodo:
-    async def test_can_delete_cleaning_successfully(self, app: FastAPI,
-                                                    authorized_client: AsyncClient,
-                                                    test_todo: TodoInDB) -> None:
+    async def test_can_delete_todo_successfully(self, app: FastAPI,
+                                                authorized_client: AsyncClient,
+                                                test_todo: TodoInDB) -> None:
         res = await authorized_client.delete(app.url_path_for("todos:delete-todo-by-id", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_200_OK
         # ensuring that todo is removed
@@ -226,10 +226,10 @@ class TestDeleteTodo:
             (None, 422),
         ),
     )
-    async def test_can_delete_cleaning_invalid_throws_error(self, app: FastAPI,
-                                                            authorized_client: AsyncClient,
-                                                            test_todo: TodoInDB,
-                                                            id: int,
-                                                            status_code: int) -> None:
+    async def test_can_delete_todo_invalid_throws_error(self, app: FastAPI,
+                                                        authorized_client: AsyncClient,
+                                                        test_todo: TodoInDB,
+                                                        id: int,
+                                                        status_code: int) -> None:
         res = await authorized_client.delete(app.url_path_for("todos:delete-todo-by-id", todo_id=id))
         assert res.status_code == status_code

@@ -6,6 +6,7 @@ from datetime import date
 
 from app.models.core import IDModelMixin, CoreModel, DateTimeModelMixin
 from app.models.user import UserPublic
+#  from app.models.comment import CommentPublic
 
 
 class PriorityType(str, Enum):
