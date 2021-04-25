@@ -2,12 +2,11 @@
 
 from typing import List
 
-from fastapi import status, HTTPException
+from fastapi import HTTPException, status
 
 from app.db.repositories.base import BaseRepository
-from app.models.todo import TodoCreate, TodoUpdate, TodoInDB
+from app.models.todo import TodoCreate, TodoInDB, TodoUpdate
 from app.models.user import UserInDB
-
 
 CREATE_TODO_QUERY = """
     INSERT INTO todos (name, notes, priority, duedate, owner)

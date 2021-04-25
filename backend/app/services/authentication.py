@@ -1,17 +1,16 @@
+from datetime import datetime, timedelta
+from typing import Optional, Type
+
 import bcrypt
 import jwt
-from typing import Type
-
-from passlib.context import CryptContext
-from datetime import datetime, timedelta
-from typing import Optional
-from pydantic import ValidationError
 from fastapi import HTTPException, status
+from passlib.context import CryptContext
+from pydantic import ValidationError
 
-from app.models.user import UserPasswordUpdate, UserBase
-from app.models.token import JWTMeta, JWTCreds, JWTPayload
-
-from app.core.config import SECRET_KEY, JWT_ALGORITHM, JWT_AUDIENCE, ACCESS_TOKEN_EXPIRE_MINUTES
+from app.core.config import (ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ALGORITHM,
+                             JWT_AUDIENCE, SECRET_KEY)
+from app.models.token import JWTCreds, JWTMeta, JWTPayload
+from app.models.user import UserBase, UserPasswordUpdate
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

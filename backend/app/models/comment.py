@@ -1,9 +1,9 @@
 """All functions to handle model of comments."""
 from typing import Optional
 
-from app.models.core import DateTimeModelMixin, IDModelMixin, CoreModel
-
 from pydantic import conint
+
+from app.models.core import CoreModel, DateTimeModelMixin, IDModelMixin
 
 
 class CommentBase(CoreModel):

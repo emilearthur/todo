@@ -17,3 +17,4 @@ Todos:
 
 Done:
     - Added email verification.
+    - added comments endpoint, get user comments and get too comments. 

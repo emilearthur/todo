@@ -1,14 +1,12 @@
 """Dependies for todo."""
 
-from fastapi import HTTPException, Depends, Path, status
+from fastapi import Depends, HTTPException, Path, status
 
-from app.models.user import UserInDB
-from app.models.todo import TodoInDB
-
-from app.db.repositories.todos import TodosRepository
-
-from app.api.dependencies.database import get_repository
 from app.api.dependencies.auth import get_current_active_user
+from app.api.dependencies.database import get_repository
+from app.db.repositories.todos import TodosRepository
+from app.models.todo import TodoInDB
+from app.models.user import UserInDB
 
 
 async def get_todo_by_id_from_path(todo_id: int = Path(..., ge=1),

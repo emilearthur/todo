@@ -1,7 +1,7 @@
 """All functions to handle models of notes summarize."""
 
 
-from app.models.core import DateTimeModelMixin, IDModelMixin, CoreModel
+from app.models.core import CoreModel, DateTimeModelMixin, IDModelMixin
 
 
 class NoteBase(CoreModel):

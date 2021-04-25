@@ -1,20 +1,18 @@
 """Router for users."""
-from fastapi import APIRouter, Depends, HTTPException, Body, status
-from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.responses import JSONResponse
-
-from app.api.dependencies.database import get_repository
-from app.api.dependencies.auth import get_current_active_user
-from app.db.repositories.comments import CommentsRepository
-from app.models.comment import CommentPublic
-
-from app.models.user import UserCreate, UserInDB, UserPublic
-from app.models.token import AccessToken
-
-from app.db.repositories.users import UsersRepository
-from app.services import auth_service
-
 from typing import List
+
+from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordRequestForm
+
+from app.api.dependencies.auth import get_current_active_user
+from app.api.dependencies.database import get_repository
+from app.db.repositories.comments import CommentsRepository
+from app.db.repositories.users import UsersRepository
+from app.models.comment import CommentPublic
+from app.models.token import AccessToken
+from app.models.user import UserCreate, UserInDB, UserPublic
+from app.services import auth_service
 
 router = APIRouter()
 

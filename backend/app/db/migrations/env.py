@@ -1,21 +1,18 @@
+import logging
+import os
 import pathlib
 import sys
-import os
+from logging.config import fileConfig
 
 import alembic
-from sqlalchemy import engine_from_config, pool
 from psycopg2 import DatabaseError
-
-from logging.config import fileConfig
-import logging
-
+from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine import create_engine
 
 # appending the app directory to path so we can import config easily
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[3]))
 
 from app.core.config import DATABASE_URL, POSTGRES_DB
-
 
 # Alembic config object, which provide access to values within the .ini file
 config = alembic.context.config
