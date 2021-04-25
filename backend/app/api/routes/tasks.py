@@ -2,20 +2,26 @@
 
 from typing import List
 
-from fastapi import APIRouter, Body, Path, status
-
+from app.api.dependencies.auth import get_current_active_user
+from app.api.dependencies.database import get_repository
+from app.api.dependencies.tasks import check_task_create_permissions
+from app.api.dependencies.todos import get_todo_by_id_from_path
+from app.db.repositories.tasks import TasksRepository
 from app.models.task import TaskCreate, TaskInDB, TaskPublic, TaskUpdate
+from app.models.todo import TodoInDB
+from app.models.user import UserInDB
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
 
 router = APIRouter()
 
 
 @router.post(
-    "/",
+    "/set",
     response_model=TaskPublic,
-    name="assigns:set-task-for-user",
+    name="assigns:set-task",
     status_code=status.HTTP_201_CREATED,
 )
-async def set_task_for_user(task_create: TaskCreate = Body(..., embed=True)) -> TaskPublic:
+async def set_task(task_create: TaskCreate = Body(..., embed=True)) -> TaskPublic:
     """Assign a task."""
     return None
 
@@ -25,10 +31,15 @@ async def set_task_for_user(task_create: TaskCreate = Body(..., embed=True)) -> 
     response_model=TaskPublic,
     name="assigns:create-task",
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(check_task_create_permissions)],
 )
-async def create_assignment(task_create: TaskCreate = Body(..., embed=True)) -> TaskPublic:
+async def create_task(
+    todo: TodoInDB = Depends(get_todo_by_id_from_path),
+    current_user: UserInDB = Depends(get_current_active_user),
+    tasks_repo: TasksRepository = Depends(get_repository(TasksRepository)),
+) -> TaskPublic:
     """Create an offer here."""
-    return None
+    return await tasks_repo.create_task_for_todo(new_task=TaskCreate(todo_id=todo.id, user_id=current_user.id))
 
 
 @router.get("/{username}/", response_model=TaskPublic, name="assigns:get_task_from_user")

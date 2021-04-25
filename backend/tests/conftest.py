@@ -1,7 +1,7 @@
 import datetime
 import os
 import warnings
-from typing import List
+from typing import List, Callable
 
 import alembic
 import pytest
@@ -86,64 +86,54 @@ def new_comment(test_todo: TodoInDB):
 
 
 @pytest.fixture
-async def test_comment(
-    db: Database, test_user: UserInDB, test_todo: TodoInDB
-) -> CommentInDB:
+async def test_comment(db: Database, test_user: UserInDB, test_todo: TodoInDB) -> CommentInDB:
     comments_repo = CommentsRepository(db)
     new_comment = CommentCreate(body="test comments", todo_id=test_todo.id)
-    return await comments_repo.create_comment(
-        new_comment=new_comment, requesting_user=test_user
-    )
+    return await comments_repo.create_comment(new_comment=new_comment, requesting_user=test_user)
 
 
 @pytest.fixture
-async def test_comment_2(
-    db: Database, test_user2: UserInDB, test_todo: TodoInDB
-) -> CommentInDB:
+async def test_comment_2(db: Database, test_user2: UserInDB, test_todo: TodoInDB) -> CommentInDB:
     comments_repo = CommentsRepository(db)
     new_comment = CommentCreate(body="test comments", todo_id=test_todo.id)
-    return await comments_repo.create_comment(
-        new_comment=new_comment, requesting_user=test_user2
-    )
+    return await comments_repo.create_comment(new_comment=new_comment, requesting_user=test_user2)
 
 
-@pytest.fixture
-async def test_user(
-    db: Database,
-) -> UserInDB:
-    new_user = UserCreate(
-        email="frederickauthur@hotmail.com",
-        username="frederickauthur",
-        password="mypassword",
-    )
-    user_repo = UsersRepository(db)
+# @pytest.fixture
+# async def test_user(
+#     db: Database,
+# ) -> UserInDB:
+#     new_user = UserCreate(
+#         email="frederickauthur@hotmail.com",
+#         username="frederickauthur",
+#         password="mypassword",
+#     )
+#     user_repo = UsersRepository(db)
 
-    existing_user = await user_repo.get_user_by_email(email=new_user.email)
-    if existing_user:
-        return existing_user
-    return await user_repo.register_new_user(new_user=new_user)
+#     existing_user = await user_repo.get_user_by_email(email=new_user.email)
+#     if existing_user:
+#         return existing_user
+#     return await user_repo.register_new_user(new_user=new_user)
 
 
-@pytest.fixture
-async def test_user2(db: Database) -> UserInDB:
-    new_user = UserCreate(
-        email="emilextrig@hotmail.com",
-        username="emilextrig",
-        password="somepassword",
-    )
-    user_repo = UsersRepository(db)
+# @pytest.fixture
+# async def test_user2(db: Database) -> UserInDB:
+#     new_user = UserCreate(
+#         email="emilextrig@hotmail.com",
+#         username="emilextrig",
+#         password="somepassword",
+#     )
+#     user_repo = UsersRepository(db)
 
-    existing_user = await user_repo.get_user_by_email(email=new_user.email)
-    if existing_user:
-        return existing_user
-    return await user_repo.register_new_user(new_user=new_user)
+#     existing_user = await user_repo.get_user_by_email(email=new_user.email)
+#     if existing_user:
+#         return existing_user
+#     return await user_repo.register_new_user(new_user=new_user)
 
 
 @pytest.fixture
 def authorized_client(client: AsyncClient, test_user: UserInDB) -> AsyncClient:
-    access_token = auth_service.create_access_token_for_user(
-        user=test_user, secret_key=str(SECRET_KEY)
-    )
+    access_token = auth_service.create_access_token_for_user(user=test_user, secret_key=str(SECRET_KEY))
     client.headers = {
         **client.headers,
         "Authorization": f"{JWT_TOKEN_PREFIX} {access_token}",
@@ -169,16 +159,86 @@ async def test_todos_list(db: Database, test_user2: UserInDB) -> List[TodoInDB]:
 
 
 @pytest.fixture
-async def test_comment_list(
-    db: Database, test_user2: UserInDB, test_todos_list: List[TodoInDB]
-) -> List[CommentInDB]:
+async def test_comment_list(db: Database, test_user2: UserInDB, test_todos_list: List[TodoInDB]) -> List[CommentInDB]:
     comments_repo = CommentsRepository(db)
     return [
         await comments_repo.create_comment(
-            new_comment=CommentCreate(
-                body=f"test comment {i}", todo_id=test_todos_list[i].id
-            ),
+            new_comment=CommentCreate(body=f"test comment {i}", todo_id=test_todos_list[i].id),
             requesting_user=test_user2,
         )
         for i in range(5)
     ]
+
+
+@pytest.fixture
+def create_authorized_client(client: AsyncClient) -> Callable:
+    def _create_authorized_client(*, user: UserInDB) -> AsyncClient:
+        access_token = auth_service.create_access_token_for_user(user=user, secret_key=str(SECRET_KEY))
+        client.headers = {
+            **client.headers,
+            "Authorization": f"{JWT_TOKEN_PREFIX} {access_token}",
+        }
+        return client
+
+    return _create_authorized_client
+
+
+async def user_fixture_helper(*, db: Database, new_user: UserCreate) -> UserInDB:
+    users_repo = UsersRepository(db)
+    existing_user = await users_repo.get_user_by_email(email=new_user.email)
+    if existing_user:
+        return existing_user
+    return await users_repo.register_new_user(new_user=new_user)
+
+
+@pytest.fixture
+async def test_user(db: Database) -> UserInDB:
+    new_user = UserCreate(email="frederickauthur@hotmail.com", username="frederickauthur", password="mypassword")
+    return await user_fixture_helper(db=db, new_user=new_user)
+
+
+@pytest.fixture
+async def test_user2(db: Database) -> UserInDB:
+    new_user = UserCreate(email="emilextrig@hotmail.com", username="emilextrig", password="somepassword")
+    return await user_fixture_helper(db=db, new_user=new_user)
+
+
+@pytest.fixture
+async def test_user3(db: Database) -> UserInDB:
+    new_user = UserCreate(email="jojo@gmail.com", username="jojo", password="morepassword")
+    return await user_fixture_helper(db=db, new_user=new_user)
+
+
+@pytest.fixture
+async def test_user4(db: Database) -> UserInDB:
+    new_user = UserCreate(email="akosua@hermail.com", username="akosua", password="moremorepassword")
+    return await user_fixture_helper(db=db, new_user=new_user)
+
+
+@pytest.fixture
+async def test_user5(db: Database) -> UserInDB:
+    new_user = UserCreate(email="janet@jackson.com", username="janet", password="somorepassword")
+    return await user_fixture_helper(db=db, new_user=new_user)
+
+
+@pytest.fixture
+async def test_user6(db: Database) -> UserInDB:
+    new_user = UserCreate(email="jay@cole.com", username="jaycole", password="jaycolepwd")
+    return await user_fixture_helper(db=db, new_user=new_user)
+
+
+@pytest.fixture
+async def test_user_list(
+    test_user3: UserInDB, test_user4: UserInDB, test_user5: UserInDB, test_user6: UserInDB
+) -> List[UserInDB]:
+    return [test_user3, test_user4, test_user5, test_user6]
+
+
+@pytest.fixture
+def authorized_client(client: AsyncClient, test_user: UserInDB) -> AsyncClient:
+    access_token = auth_service.create_access_token_for_user(user=test_user, secret_key=str(SECRET_KEY))
+    client.headers = {
+        **client.headers,
+        "Authorization": f"{JWT_TOKEN_PREFIX} {access_token}",
+    }
+    return client

@@ -19,10 +19,6 @@
         "--ignore=D4",
         "--ignore=D203"
     ],
-    "python.sortImports.args": [
-        "rc",
-        "-sp isort.cfg"
-    ],
     "python.formatting.provider": "black",
     "python.formatting.blackArgs": [
         "--line-length=120"
@@ -37,4 +33,10 @@
         }
     },
     "editor.fontLigatures": false,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "python.testing.pytestEnabled": true,
 }
