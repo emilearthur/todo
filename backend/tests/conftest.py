@@ -1,24 +1,26 @@
+"""Confest module."""
 import datetime
 import os
 import warnings
-from typing import List, Callable
+from typing import Callable, List
 
 import alembic
 import pytest
 from alembic.config import Config
+from app.core.config import JWT_TOKEN_PREFIX, SECRET_KEY
+from app.db.repositories.comments import CommentsRepository
+from app.db.repositories.tasks import TasksRepository
+from app.db.repositories.todos import TodosRepository
+from app.db.repositories.users import UsersRepository
+from app.models.comment import CommentCreate, CommentInDB
+from app.models.task import TaskCreate
+from app.models.todo import TodoCreate, TodoInDB
+from app.models.user import UserCreate, UserInDB
+from app.services import auth_service
 from asgi_lifespan import LifespanManager
 from databases import Database
 from fastapi import FastAPI
 from httpx import AsyncClient
-
-from app.core.config import JWT_TOKEN_PREFIX, SECRET_KEY
-from app.db.repositories.comments import CommentsRepository
-from app.db.repositories.todos import TodosRepository
-from app.db.repositories.users import UsersRepository
-from app.models.comment import CommentCreate, CommentInDB
-from app.models.todo import TodoCreate, TodoInDB
-from app.models.user import UserCreate, UserInDB
-from app.services import auth_service
 
 
 # apply migration at beginning and end of testing session
@@ -235,10 +237,41 @@ async def test_user_list(
 
 
 @pytest.fixture
-def authorized_client(client: AsyncClient, test_user: UserInDB) -> AsyncClient:
-    access_token = auth_service.create_access_token_for_user(user=test_user, secret_key=str(SECRET_KEY))
-    client.headers = {
-        **client.headers,
-        "Authorization": f"{JWT_TOKEN_PREFIX} {access_token}",
-    }
-    return client
+async def test_todo_with_tasks(db: Database, test_user2: UserInDB, test_user_list: List[UserInDB]) -> TodoInDB:
+    todos_repo = TodosRepository(db)
+    tasks_repo = TasksRepository(db)
+
+    new_todo = TodoCreate(
+        name="todo with an offer",
+        notes="some notes",
+        priority="critical",
+        duedate=datetime.date.today(),
+    )
+    created_todo = await todos_repo.create_todo(new_todo=new_todo, requesting_user=test_user2)
+    for user in test_user_list:
+        await tasks_repo.create_task_for_todo(new_task=TaskCreate(todo_id=created_todo.id, user_id=user.id))
+    return created_todo
+
+
+@pytest.fixture
+async def test_todo_with_accepted_offer(
+    db: Database, test_user2: UserInDB, test_user3: UserInDB, test_user_list: List[UserInDB]
+) -> TodoInDB:
+    todos_repo = TodosRepository(db)
+    tasks_repo = TasksRepository(db)
+
+    new_todo = TodoCreate(
+        name="todo with an offer",
+        notes="some notes",
+        priority="critical",
+        duedate=datetime.date.today(),
+    )
+    created_todo = await todos_repo.create_todo(new_todo=new_todo, requesting_user=test_user2)
+
+    tasks = []
+    for user in test_user_list:
+        tasks.append(
+            await tasks_repo.create_task_for_todo(new_task=TaskCreate(todo_id=created_todo.id, user_id=user.id))
+        )
+    await tasks_repo.accept_task(task=[task for task in tasks if task.user_id == test_user3.id][0])
+    return created_todo

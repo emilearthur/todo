@@ -1,7 +1,9 @@
 from typing import List
 
 from app.db.repositories.base import BaseRepository
-from app.models.task import TaskCreate, TaskInDB, TaskUpdate
+from app.models.task import TaskCreate, TaskInDB
+from app.models.todo import TodoInDB
+from app.models.user import UserInDB
 from asyncpg.exceptions import UniqueViolationError
 from fastapi import HTTPException, status
 
@@ -11,19 +13,67 @@ CREATE_TASK_FOR_TODO_QUERY = """
     RETURNING todo_id, user_id, status, created_at, updated_at;
 """
 
+LIST_OFFERS_FOR_TASK_QUERY = """
+    SELECT todo_id, user_id, status, created_at, updated_at
+    FROM user_assigns_or_offers_todos
+    WHERE todo_id = :todo_id;
+"""
+
+GET_OFFER_FOR_TASK_FROM_USER_QUERY = """
+    SELECT todo_id, user_id, status, created_at, updated_at
+    FROM user_assigns_or_offers_todos
+    WHERE todo_id = :todo_id AND user_id = :user_id;
+"""
+
+ACCEPT_TASK_QUERY = """
+    UPDATE user_assigns_or_offers_todos
+    SET status = 'accepted'
+    WHERE todo_id = :todo_id AND user_id = :user_id
+    RETURNING todo_id, user_id, status, created_at, updated_at;
+"""
+
+REJECT_ALL_OTHER_OFFERS_QUERY = """
+    UPDATE user_assigns_or_offers_todos
+    SET status = 'rejected'
+    WHERE todo_id = :todo_id
+    AND user_id != :user_id
+    AND status = 'pending';
+"""
+
 
 class TasksRepository(BaseRepository):
     """class for tasks."""
 
     async def create_task_for_todo(self, *, new_task: TaskCreate) -> TaskInDB:
         """Create a task."""
-        try:
-            created_task = await self.db.fetch_one(
-                query=CREATE_TASK_FOR_TODO_QUERY, values={**new_task.dict(), "status": "pending"}
+        created_task = await self.db.fetch_one(
+            query=CREATE_TASK_FOR_TODO_QUERY, values={**new_task.dict(), "status": "pending"}
+        )
+        return TaskInDB(**created_task)
+
+    async def list_offers_for_task(self, *, todo: TodoInDB) -> List[TaskInDB]:
+        """Get all offers of a task from the db."""
+        tasks = await self.db.fetch_all(query=LIST_OFFERS_FOR_TASK_QUERY, values={"todo_id": todo.id})
+        return [TaskInDB(**task) for task in tasks]
+
+    async def get_offer_for_task_from_user(self, *, todo: TodoInDB, user: UserInDB) -> TaskInDB:
+        """Get an offer for a task from db."""
+        task_record = await self.db.fetch_one(
+            query=GET_OFFER_FOR_TASK_FROM_USER_QUERY, values={"todo_id": todo.id, "user_id": user.id}
+        )
+        if not task_record:
+            return None
+
+        return TaskInDB(**task_record)
+
+    async def accept_task(self, *, task: TaskInDB) -> TaskInDB:
+        """Accept a task."""
+        async with self.db.transaction():
+            accept_task = await self.db.fetch_one(
+                query=ACCEPT_TASK_QUERY,
+                values={"todo_id": task.todo_id, "user_id": task.user_id},
             )
-            return TaskInDB(**created_task)
-        except UniqueViolationError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Users aren't allowed to create more than one task for a todo job",
+            await self.db.execute(
+                query=REJECT_ALL_OTHER_OFFERS_QUERY, values={"todo_id": task.todo_id, "user_id": task.user_id}
             )
+            return TaskInDB(**accept_task)
