@@ -11,8 +11,6 @@ from app.models.user import UserInDB
 from fastapi import FastAPI, status
 from httpx import AsyncClient
 
-from tests.conftest import test_user
-
 pytestmark = pytest.mark.asyncio
 
 
