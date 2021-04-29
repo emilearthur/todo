@@ -179,7 +179,7 @@ def create_commment_table() -> None:
     )
 
 
-def create_assign_offer_table() -> None:
+def create_task_offer_table() -> None:
     op.create_table(
         "user_task_for_todos",
         sa.Column(
@@ -202,9 +202,58 @@ def create_assign_offer_table() -> None:
     op.create_primary_key("pk_user_task_for_todos", "user_task_for_todos", ["user_id", "todo_id"])
     op.execute(
         """
-        CREATE TRIGGER user_task_for_todos_modtime
+        CREATE TRIGGER update_user_task_for_todos_modtime
             BEFORE UPDATE
             ON user_task_for_todos
+            FOR EACH ROW
+        EXECUTE PROCEDURE update_updated_at_column()
+        """
+    )
+
+
+def create_task_taker_evaluations_table() -> None:
+    """
+    Owner of a task (i.e. todo offered) should be able to evauluate the task taker's execution of the job.
+    - Allow owner to leave ratings, headline and comments.
+    - Add no show if the task was not done.
+    - Rating splits into sections
+        - professionalism - did they handle thinks likle pros?
+        - completeness - how through were they? did every detail needed in the task executed.
+        - efficiency - how quickly and effectively did they get the task done?
+        - overall - what's the rating for the task executed?
+    """
+    op.create_table(
+        "task_to_taker_evalations",
+        sa.Column(
+            "todo_id",
+            sa.Integer,
+            sa.ForeignKey("todos.id", ondelete="SET NULL"),
+            nullable=False,
+            index=True,
+        ),
+        sa.Column(
+            "taker_id",
+            sa.Integer,
+            sa.ForeignKey("users.id", ondelete="SET NULL"),
+            nullable=False,
+            index=True,
+        ),
+        sa.Column("no_show", sa.Boolean, nullable=False, server_default="False"),
+        sa.Column("headline", sa.Text, nullable=True),
+        sa.Column("comment", sa.Text, nullable=True),
+        sa.Column("professionalism", sa.Integer, nullable=True),
+        sa.Column("professionalism", sa.Integer, nullable=True),
+        sa.Column("completeness", sa.Integer, nullable=True),
+        sa.Column("efficiency", sa.Integer, nullable=True),
+        sa.Column("overall_rating", sa.Integer, nullable=False),
+        *timestamps(),
+    )
+    op.create_primary_key("pk_task_to_taker_evalations", "task_to_taker_evalations", ["todo_id", "taker_id"])
+    op.execute(
+        """
+        CREATE TRIGGER update_task_to_taker_evalations_modtime
+            BEFORE UPDATE
+            ON task_to_taker_evalations
             FOR EACH ROW
         EXECUTE PROCEDURE update_updated_at_column()
         """
@@ -219,10 +268,12 @@ def upgrade() -> None:
     create_todos_table()
     create_commment_table()
     create_note_table()
-    create_assign_offer_table()
+    create_task_offer_table()
+    create_task_taker_evaluations_table()
 
 
 def downgrade() -> None:
+    op.drop_table("task_to_taker_evalations")
     op.drop_table("user_task_for_todos")
     op.drop_table("comments")
     op.drop_table("notes")
