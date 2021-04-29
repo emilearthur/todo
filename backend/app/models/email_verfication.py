@@ -1,7 +1,8 @@
 """All functions to handle models of Email verifcation."""
 
-from app.models.core import DateTimeModelMixin, CoreModel
 from pydantic import EmailStr
+
+from app.models.core import CoreModel, DateTimeModelMixin
 
 
 class EmailSchema(CoreModel):

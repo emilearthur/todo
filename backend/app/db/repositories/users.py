@@ -1,27 +1,21 @@
 """DB repo for profile."""
 
+import logging
+import random
+import string
 from datetime import datetime, timezone
 from typing import Optional
-from pydantic import EmailStr
+
+from databases import Database
 from fastapi import HTTPException, status
+from pydantic import EmailStr
 
 from app.db.repositories.base import BaseRepository
 from app.db.repositories.profiles import ProfilesRepository
-
-from app.models.user import UserCreate, UserInDB, UserPublic
-from app.models.profile import ProfileCreate
 from app.models.email_verfication import EmailVerficationInDB
-
-
-from app.services import auth_service
-from app.services import email_service
-
-from databases import Database
-import random
-import string
-
-import logging
-
+from app.models.profile import ProfileCreate
+from app.models.user import UserCreate, UserInDB, UserPublic
+from app.services import auth_service, email_service
 
 logger = logging.getLogger(__name__)
 

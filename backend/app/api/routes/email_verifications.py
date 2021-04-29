@@ -4,10 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi_mail import FastMail
 
-from app.models.email_verfication import EmailSchema, EmailVerficationCreate, EmailVerficationInDB, EmailVerificationUpdate
 from app.api.dependencies.auth import get_current_active_user
+from app.models.email_verfication import (EmailSchema, EmailVerficationCreate,
+                                          EmailVerficationInDB,
+                                          EmailVerificationUpdate)
 from app.models.user import UserInDB
-
 
 router = APIRouter()
 

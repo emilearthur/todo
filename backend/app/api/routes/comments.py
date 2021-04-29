@@ -1,15 +1,14 @@
 """Routes for comments."""
 from fastapi import APIRouter, Body, Depends, status
+
 from app.api.dependencies.auth import get_current_active_user
-
-from app.models.comment import CommentCreate, CommentInDB, CommentPublic, CommentUpdate
-
-from app.db.repositories.comments import CommentsRepository
-
+from app.api.dependencies.comments import (
+    check_comment_modification_permission, get_comment_by_id_from_path)
 from app.api.dependencies.database import get_repository
-from app.api.dependencies.comments import get_comment_by_id_from_path, check_comment_modification_permission
+from app.db.repositories.comments import CommentsRepository
+from app.models.comment import (CommentCreate, CommentInDB, CommentPublic,
+                                CommentUpdate)
 from app.models.user import UserInDB
-
 
 router = APIRouter()
 

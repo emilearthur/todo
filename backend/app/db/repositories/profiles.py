@@ -1,7 +1,6 @@
 """DB repo for profile."""
 from app.db.repositories.base import BaseRepository
-
-from app.models.profile import ProfileCreate, ProfileUpdate, ProfileInDB
+from app.models.profile import ProfileCreate, ProfileInDB, ProfileUpdate
 from app.models.user import UserInDB
 
 CREATE_PROFILE_FOR_USER_QUERY = """

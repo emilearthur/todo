@@ -3,10 +3,10 @@ Revision ID: 9bf7d5cb7916
 Revises: 77ab2fcbd4a6
 Create Date: 2021-04-07 20:19:48.420665
 """
-from alembic import op
-import sqlalchemy as sa
 from typing import Tuple
 
+import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic
 revision = '9bf7d5cb7916'
@@ -165,6 +165,26 @@ def create_commment_table() -> None:
         """)
 
 
+def create_assign_offer_table() -> None:
+    op.create_table(
+        "user_assigns_or_offers_todos",
+        sa.Column("user_id", sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"),
+                  nullable=False, index=True,),
+        sa.Column("todo_id", sa.Integer, sa.ForeignKey("todos.id", ondelete="CASCADE"),
+                  nullable=False, index=True,),
+        sa.Column("status", sa.Text, nullable=False, server_default="pending", index=True),
+        *timestamps(),)
+    op.create_primary_key("pk_user_assigns_or_offers_todos", "user_assigns_or_offers_todos", ["user_id", "todo_id"])
+    op.execute(
+        """
+        CREATE TRIGGER user_assigns_or_offers_todos_modtime
+            BEFORE UPDATE
+            ON user_assigns_or_offers_todos
+            FOR EACH ROW
+        EXECUTE PROCEDURE update_updated_at_column()
+        """)
+
+
 def upgrade() -> None:
     create_updated_at_trigger()
     create_users_table()
@@ -173,9 +193,11 @@ def upgrade() -> None:
     create_todos_table()
     create_commment_table()
     create_note_table()
+    create_assign_offer_table()
 
 
 def downgrade() -> None:
+    op.drop_table("user_assigns_or_offers_todos")
     op.drop_table("comments")
     op.drop_table("notes")
     op.drop_table("todos")

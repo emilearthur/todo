@@ -8,7 +8,6 @@ from fastapi import HTTPException, status
 
 from app.db.repositories.base import BaseRepository
 from app.db.repositories.todos import TodosRepository
-
 from app.models.comment import CommentCreate, CommentInDB, CommentUpdate
 from app.models.todo import TodoInDB
 from app.models.user import UserInDB

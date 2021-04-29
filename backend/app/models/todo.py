@@ -1,11 +1,12 @@
 """All functions to handle models of todos."""
 
-from typing import Optional, Union
-from enum import Enum
 from datetime import date
+from enum import Enum
+from typing import Optional, Union
 
-from app.models.core import IDModelMixin, CoreModel, DateTimeModelMixin
+from app.models.core import CoreModel, DateTimeModelMixin, IDModelMixin
 from app.models.user import UserPublic
+
 #  from app.models.comment import CommentPublic
 
 

@@ -4,7 +4,7 @@ from typing import Optional
 
 from pydantic import EmailStr, constr
 
-from app.models.core import DateTimeModelMixin, IDModelMixin, CoreModel
+from app.models.core import CoreModel, DateTimeModelMixin, IDModelMixin
 from app.models.profile import ProfilePublic
 from app.models.token import AccessToken
 

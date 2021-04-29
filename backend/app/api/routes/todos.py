@@ -4,17 +4,15 @@ from typing import List
 
 from fastapi import APIRouter, Body, Depends, status
 
-from app.models.todo import TodoCreate, TodoPublic, TodoUpdate, TodoInDB
-from app.models.user import UserInDB
-from app.models.comment import CommentInDB
-
-from app.db.repositories.todos import TodosRepository
-from app.db.repositories.comments import CommentsRepository
-
-from app.api.dependencies.database import get_repository
 from app.api.dependencies.auth import get_current_active_user
-from app.api.dependencies.todos import get_todo_by_id_from_path, check_todo_modification_permission
-
+from app.api.dependencies.database import get_repository
+from app.api.dependencies.todos import (check_todo_modification_permission,
+                                        get_todo_by_id_from_path)
+from app.db.repositories.comments import CommentsRepository
+from app.db.repositories.todos import TodosRepository
+from app.models.comment import CommentInDB
+from app.models.todo import TodoCreate, TodoInDB, TodoPublic, TodoUpdate
+from app.models.user import UserInDB
 
 router = APIRouter()
 

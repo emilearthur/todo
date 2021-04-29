@@ -1,14 +1,12 @@
 """Dependecies for comment."""
 
-from fastapi import HTTPException, Depends, Path, status
+from fastapi import Depends, HTTPException, Path, status
 from starlette.status import HTTP_403_FORBIDDEN
 
-from app.models.comment import CommentInDB
-
-from app.db.repositories.comments import CommentsRepository
-
-from app.api.dependencies.database import get_repository
 from app.api.dependencies.auth import get_current_active_user
+from app.api.dependencies.database import get_repository
+from app.db.repositories.comments import CommentsRepository
+from app.models.comment import CommentInDB
 from app.models.user import UserInDB
 
 

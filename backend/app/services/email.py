@@ -1,9 +1,10 @@
 """Function to send Email."""
 
-import smtplib
 import email.message
-from pydantic import EmailStr
+import smtplib
 from typing import List
+
+from pydantic import EmailStr
 
 from app.core.config import EMAIL_ADDR, EMAIL_PWD
 
