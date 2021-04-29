@@ -6,18 +6,21 @@ from app.api.dependencies.auth import get_current_active_user
 from app.api.dependencies.database import get_repository
 from app.api.dependencies.tasks import (
     check_offer_list_permissions,
-    check_task_acceptance_permission,
     check_task_create_permissions,
     check_task_get_permissions,
+    check_task_offer_acceptance_permissions,
+    check_task_offer_cancel_permissions,
+    check_task_offer_rescind_permissions,
     get_offer_for_task_from_user_by_path,
+    get_task_offers_for_todo_from_current_user,
     list_offers_for_task_by_id_from_path,
 )
 from app.api.dependencies.todos import get_todo_by_id_from_path
 from app.db.repositories.tasks import TasksRepository
-from app.models.task import TaskCreate, TaskInDB, TaskPublic, TaskUpdate
+from app.models.task import TaskCreate, TaskInDB, TaskPublic
 from app.models.todo import TodoInDB
 from app.models.user import UserInDB
-from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
+from fastapi import APIRouter, Body, Depends, status
 
 router = APIRouter()
 
@@ -77,23 +80,39 @@ async def get_offer_from_user(task: TaskInDB = Depends(get_offer_for_task_from_u
     "/{username}/",
     response_model=TaskPublic,
     name="assigns:accept-task-from-user",
-    dependencies=[Depends(check_task_acceptance_permission)],
+    dependencies=[Depends(check_task_offer_acceptance_permissions)],
 )
 async def accept_task_from_user(
     task: TaskInDB = Depends(get_offer_for_task_from_user_by_path),
     tasks_repo: TasksRepository = Depends(get_repository(TasksRepository)),
 ) -> TaskPublic:
     """Accept task from a user."""
-    return await tasks_repo.accept_task(task=task)
+    return await tasks_repo.accept_offer_for_task(task=task)
 
 
-@router.put("/", response_model=TaskPublic, name="assigns:cancel-task-from-user")
-async def cancel_task_from_user() -> TaskPublic:
-    """Cancel task from a user."""
-    return None
+@router.put(
+    "/",
+    response_model=TaskPublic,
+    name="assigns:cancel-task-from-user",
+    dependencies=[Depends(check_task_offer_cancel_permissions)],
+)
+async def cancel_task_from_user(
+    task: TaskInDB = Depends(get_task_offers_for_todo_from_current_user),
+    tasks_repo: TasksRepository = Depends(get_repository(TasksRepository)),
+) -> TaskPublic:
+    """Cancel task offer from a user."""
+    return await tasks_repo.cancel_offer_for_task(task=task)
 
 
-@router.delete("/", response_model=int, name="assigns:rescind-task-from-user")
-async def rescind_task_from_user() -> TaskPublic:
-    """Cancel task from a user."""
-    return None
+@router.delete(
+    "/",
+    response_model=int,
+    name="assigns:rescind-task-from-user",
+    dependencies=[Depends(check_task_offer_rescind_permissions)],
+)
+async def rescind_task_from_user(
+    task: TaskInDB = Depends(get_task_offers_for_todo_from_current_user),
+    tasks_repo: TasksRepository = Depends(get_repository(TasksRepository)),
+) -> TaskPublic:
+    """Cancel task offer from a user."""
+    return await tasks_repo.rescind_offer_for_task(task=task)

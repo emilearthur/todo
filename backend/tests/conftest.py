@@ -254,7 +254,7 @@ async def test_todo_with_tasks(db: Database, test_user2: UserInDB, test_user_lis
 
 
 @pytest.fixture
-async def test_todo_with_accepted_offer(
+async def test_todo_with_accepted_task_offer(
     db: Database, test_user2: UserInDB, test_user3: UserInDB, test_user_list: List[UserInDB]
 ) -> TodoInDB:
     todos_repo = TodosRepository(db)
@@ -273,5 +273,5 @@ async def test_todo_with_accepted_offer(
         tasks.append(
             await tasks_repo.create_task_for_todo(new_task=TaskCreate(todo_id=created_todo.id, user_id=user.id))
         )
-    await tasks_repo.accept_task(task=[task for task in tasks if task.user_id == test_user3.id][0])
+    await tasks_repo.accept_offer_for_task(task=[task for task in tasks if task.user_id == test_user3.id][0])
     return created_todo

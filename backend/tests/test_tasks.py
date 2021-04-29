@@ -11,6 +11,8 @@ from app.models.user import UserInDB
 from fastapi import FastAPI, status
 from httpx import AsyncClient
 
+from tests.conftest import test_user
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -191,7 +193,7 @@ class TestGetTasks:
 class TestAcceptTasks:
     """Test users accept tasks."""
 
-    async def test_task_ower_can_accept_task_successfully(
+    async def test_task_ower_can_accept_task_offer_successfully(
         self,
         app: FastAPI,
         create_authorized_client: Callable,
@@ -214,7 +216,7 @@ class TestAcceptTasks:
         assert accepted_task.user_id == selected_user.id
         assert accepted_task.todo_id == test_todo_with_tasks.id
 
-    async def test_non_owner_forbidden_from_accepting_task_for_todo(
+    async def test_non_owner_forbidden_from_accepting_task_offer_for_todo(
         self,
         app: FastAPI,
         authorized_client: AsyncClient,
@@ -231,7 +233,7 @@ class TestAcceptTasks:
         )
         assert res.status_code == status.HTTP_403_FORBIDDEN
 
-    async def test_todo_woner_cant_accept_multiple_offers(
+    async def test_todo_owner_cant_accept_multiple_task_offers(
         self,
         app: FastAPI,
         create_authorized_client: Callable,
@@ -258,7 +260,7 @@ class TestAcceptTasks:
         )
         assert res.status_code == status.HTTP_400_BAD_REQUEST
 
-    async def test_accepting_one_offer_rejects_all_other_offers(
+    async def test_accepting_one_task_offer_rejects_all_other_offers(
         self,
         app: FastAPI,
         create_authorized_client: Callable,
@@ -292,48 +294,124 @@ class TestAcceptTasks:
 class TestCancelTasks:
     """Test users cancels tasks."""
 
-    async def test_user_can_cancel_offer_after_accepting_it(
-        self, app: FastAPI, create_authorized_client: Callable, test_user3, test_todo_with_accepted_offer: TodoInDB
+    async def test_user_can_cancel_task_offer_after_accepting_it(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user3,
+        test_todo_with_accepted_task_offer: TodoInDB,
     ) -> None:
         accepted_user_client = create_authorized_client(user=test_user3)
         res = await accepted_user_client.put(
-            app.url_path_for("assigns:cancel-task-from-user", todo_id=test_todo_with_accepted_offer.id)
+            app.url_path_for("assigns:cancel-task-from-user", todo_id=test_todo_with_accepted_task_offer.id)
         )
         assert res.status_code == status.HTTP_200_OK
         cancelled_task = TaskInDB(**res.json())
         assert cancelled_task.status == "cancelled"
         assert cancelled_task.user_id == test_user3.id
-        assert cancelled_task.todo_id == test_todo_with_accepted_offer.id
+        assert cancelled_task.todo_id == test_todo_with_accepted_task_offer.id
 
-    async def test_only_accepted_offers_can_be_cancelled(
+    async def test_only_accepted_task_offers_can_be_cancelled(
         sefl,
         app: FastAPI,
         create_authorized_client: Callable,
         test_user4: UserInDB,
-        test_todo_with_accepted_offer: TodoInDB,
+        test_todo_with_accepted_task_offer: TodoInDB,
     ) -> None:
         user_client = create_authorized_client(user=test_user4)
         res = await user_client.put(
-            app.url_path_for("assigns:cancel-task-from-user", todo_id=test_todo_with_accepted_offer.id)
+            app.url_path_for("assigns:cancel-task-from-user", todo_id=test_todo_with_accepted_task_offer.id)
         )
         assert res.status_code == status.HTTP_400_BAD_REQUEST
 
-    async def test_cancelling_offer_sets_all_others_to_pending(
+    async def test_cancelling_task_offer_sets_all_others_to_pending(
         self,
         app: FastAPI,
         create_authorized_client: Callable,
         test_user3: UserInDB,
-        test_todo_with_accepted_offer: TodoInDB,
+        test_todo_with_accepted_task_offer: TodoInDB,
     ):
         accepted_user_client = create_authorized_client(user=test_user3)
         res = await accepted_user_client.put(
-            app.url_path_for("assigns:cancel-task-from-user", todo_id=test_todo_with_accepted_offer.id)
+            app.url_path_for("assigns:cancel-task-from-user", todo_id=test_todo_with_accepted_task_offer.id)
         )
         assert res.status_code == status.HTTP_200_OK
         tasks_repo = TasksRepository(app.state._db)
-        offers = await tasks_repo.list_offers_for_task(todo=test_todo_with_accepted_offer)
+        offers = await tasks_repo.list_offers_for_task(todo=test_todo_with_accepted_task_offer)
         for offer in offers:
             if offer.user_id == test_user3.id:
                 assert offer.status == "cancelled"
             else:
                 assert offer.status == "pending"
+
+
+class TestRescindTasks:
+    """Test users cancels tasks."""
+
+    async def test_user_can_successfully_rescind_pending_task_offer(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user4: UserInDB,
+        test_user_list: List[UserInDB],
+        test_todo_with_tasks: TodoInDB,
+    ) -> None:
+        """After user rescind a pending task. It should not longer appear when listing task for todo."""
+        authorized_client = create_authorized_client(user=test_user4)
+        res = await authorized_client.delete(
+            app.url_path_for("assigns:rescind-task-from-user", todo_id=test_todo_with_tasks.id)
+        )
+        assert res.status_code == status.HTTP_200_OK
+        tasks_repo = TasksRepository(app.state._db)
+        offers = await tasks_repo.list_offers_for_task(todo=test_todo_with_tasks)
+        user_ids = [user.id for user in test_user_list]
+        for offer in offers:
+            assert offer.user_id in user_ids
+            assert offer.user_id != test_user4.id
+
+    async def test_users_cannot_rescind_accepted_task_offers(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user3: UserInDB,
+        test_todo_with_accepted_task_offer: TodoInDB,
+    ) -> None:
+        """Users cannot rescind an offer. They can only cancel it."""
+        authorized_client = create_authorized_client(user=test_user3)
+        res = await authorized_client.delete(
+            app.url_path_for("assigns:rescind-task-from-user", todo_id=test_todo_with_accepted_task_offer.id)
+        )
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    async def test_users_cannot_rescind_cancelled_task_offers(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user3: UserInDB,
+        test_todo_with_accepted_task_offer: TodoInDB,
+    ) -> None:
+        """Cancelled offers should not be cancelled again."""
+        authorized_client = create_authorized_client(user=test_user3)
+        res = await authorized_client.put(
+            app.url_path_for("assigns:cancel-task-from-user", todo_id=test_todo_with_accepted_task_offer.id)
+        )
+        assert res.status_code == status.HTTP_200_OK
+
+        res = await authorized_client.delete(
+            app.url_path_for("assigns:rescind-task-from-user", todo_id=test_todo_with_accepted_task_offer.id)
+        )
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    async def test_user_cannot_rescind_rejected_task_offers(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user4: UserInDB,
+        test_todo_with_accepted_task_offer: TodoInDB,
+    ) -> None:
+        """If task offer for task is reject, user should not rescind it."""
+        authorized_client = create_authorized_client(user=test_user4)
+        res = await authorized_client.delete(
+            app.url_path_for("assigns:rescind-task-from-user", todo_id=test_todo_with_accepted_task_offer.id)
+        )
+        assert res.status_code == status.HTTP_400_BAD_REQUEST

@@ -78,7 +78,7 @@ async def check_task_get_permissions(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unable to access task")
 
 
-def check_task_acceptance_permission(
+def check_task_offer_acceptance_permissions(
     current_user: UserInDB = Depends(get_current_active_user),
     todo: TodoInDB = Depends(get_todo_by_id_from_path),
     task: TaskInDB = Depends(get_offer_for_task_from_user_by_path),
@@ -97,10 +97,24 @@ def check_task_acceptance_permission(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The todo already has an accepted offer.")
 
 
-# async def get_offer_todo_from_current_user(
-#     current_user: UserInDB = Depends(get_current_active_user),
-#     todo: TodoInDB = Depends(get_todo_by_id_from_path),
-#     tasks_repo: TasksRepository = Depends(get_repository(TasksRepository)),
-# ) -> None:
-#     """Get all tas"""
-#     return await get_task_for_todo_from_user(user=current_user, todo=todo, tasks_repo=tasks_repo)
+async def get_task_offers_for_todo_from_current_user(
+    current_user: UserInDB = Depends(get_current_active_user),
+    todo: TodoInDB = Depends(get_todo_by_id_from_path),
+    tasks_repo: TasksRepository = Depends(get_repository(TasksRepository)),
+) -> None:
+    """Get all offers for task for current user."""
+    return await get_task_for_todo_from_user(user=current_user, todo=todo, tasks_repo=tasks_repo)
+
+
+def check_task_offer_cancel_permissions(task: TaskInDB = Depends(get_task_offers_for_todo_from_current_user)) -> None:
+    """Permission to cancel task."""
+    if task.status != "accepted":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Can only cancel tasks taht have been accepted."
+        )
+
+
+def check_task_offer_rescind_permissions(task: TaskInDB = Depends(get_task_offers_for_todo_from_current_user)) -> None:
+    """Permission to rescind task."""
+    if task.status != "pending":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only pending task can be rescinded.")

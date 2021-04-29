@@ -1,11 +1,11 @@
+"""DB repo for tasks."""
+
 from typing import List
 
 from app.db.repositories.base import BaseRepository
 from app.models.task import TaskCreate, TaskInDB
 from app.models.todo import TodoInDB
 from app.models.user import UserInDB
-from asyncpg.exceptions import UniqueViolationError
-from fastapi import HTTPException, status
 
 CREATE_TASK_FOR_TODO_QUERY = """
     INSERT INTO user_assigns_or_offers_todos (todo_id, user_id, status)
@@ -25,14 +25,14 @@ GET_OFFER_FOR_TASK_FROM_USER_QUERY = """
     WHERE todo_id = :todo_id AND user_id = :user_id;
 """
 
-ACCEPT_TASK_QUERY = """
+ACCEPT_OFFER_FOR_TASK_QUERY = """
     UPDATE user_assigns_or_offers_todos
     SET status = 'accepted'
     WHERE todo_id = :todo_id AND user_id = :user_id
     RETURNING todo_id, user_id, status, created_at, updated_at;
 """
 
-REJECT_ALL_OTHER_OFFERS_QUERY = """
+REJECT_ALL_OTHER_OFFERS_FOR_TASK_QUERY = """
     UPDATE user_assigns_or_offers_todos
     SET status = 'rejected'
     WHERE todo_id = :todo_id
@@ -40,12 +40,33 @@ REJECT_ALL_OTHER_OFFERS_QUERY = """
     AND status = 'pending';
 """
 
+CANCEL_OFFER_FOR_TASK_QUERY = """
+    UPDATE user_assigns_or_offers_todos
+    SET status = 'cancelled'
+    WHERE todo_id = :todo_id AND user_id = :user_id
+    RETURNING todo_id, user_id, status, created_at, updated_at;
+"""
+
+SET_ALL_OTHER_OFFERS_FOR_TASK_AS_PENDING_QUERY = """
+    UPDATE user_assigns_or_offers_todos
+    SET status = 'pending'
+    WHERE todo_id = :todo_id
+    AND user_id != :user_id
+    AND status = 'rejected';
+"""
+
+RESCIND_OFFER_FOR_TASK_QUERY = """
+    DELETE FROM user_assigns_or_offers_todos
+    WHERE todo_id = :todo_id
+    AND user_id = :user_id
+"""
+
 
 class TasksRepository(BaseRepository):
     """class for tasks."""
 
     async def create_task_for_todo(self, *, new_task: TaskCreate) -> TaskInDB:
-        """Create a task."""
+        """Create a task of a todo."""
         created_task = await self.db.fetch_one(
             query=CREATE_TASK_FOR_TODO_QUERY, values={**new_task.dict(), "status": "pending"}
         )
@@ -66,14 +87,33 @@ class TasksRepository(BaseRepository):
 
         return TaskInDB(**task_record)
 
-    async def accept_task(self, *, task: TaskInDB) -> TaskInDB:
-        """Accept a task."""
+    async def accept_offer_for_task(self, *, task: TaskInDB) -> TaskInDB:
+        """Accept offer for  a task."""
         async with self.db.transaction():
-            accept_task = await self.db.fetch_one(
-                query=ACCEPT_TASK_QUERY,
+            accepted_task = await self.db.fetch_one(
+                query=ACCEPT_OFFER_FOR_TASK_QUERY,
                 values={"todo_id": task.todo_id, "user_id": task.user_id},
             )
             await self.db.execute(
-                query=REJECT_ALL_OTHER_OFFERS_QUERY, values={"todo_id": task.todo_id, "user_id": task.user_id}
+                query=REJECT_ALL_OTHER_OFFERS_FOR_TASK_QUERY, values={"todo_id": task.todo_id, "user_id": task.user_id}
             )
-            return TaskInDB(**accept_task)
+            return TaskInDB(**accepted_task)
+
+    async def cancel_offer_for_task(self, *, task: TaskInDB) -> TaskInDB:
+        """Cancel offer for a task."""
+        async with self.db.transaction():
+            cancelled_task = await self.db.fetch_one(
+                query=CANCEL_OFFER_FOR_TASK_QUERY, values={"todo_id": task.todo_id, "user_id": task.user_id}
+            )
+            await self.db.execute(
+                query=SET_ALL_OTHER_OFFERS_FOR_TASK_AS_PENDING_QUERY,
+                values={"todo_id": task.todo_id, "user_id": task.user_id},
+            )
+            return TaskInDB(**cancelled_task)
+
+    async def rescind_offer_for_task(self, *, task: TaskInDB) -> int:
+        """Rescind offer for a task."""
+        return await self.db.execute(
+            query=RESCIND_OFFER_FOR_TASK_QUERY,
+            values={"todo_id": task.todo_id, "user_id": task.user_id},
+        )
