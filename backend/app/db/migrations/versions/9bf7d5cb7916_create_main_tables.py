@@ -9,7 +9,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic
-revision = '9bf7d5cb7916'
+revision = "9bf7d5cb7916"
 
 down_revision = None
 branch_labels = None
@@ -32,17 +32,22 @@ def create_updated_at_trigger() -> None:
 
 
 def timestamps(indexed: bool = False) -> Tuple[sa.Column, sa.Column]:
-    return (sa.Column("created_at",
-                      sa.TIMESTAMP(timezone=True),
-                      server_default=sa.func.now(),
-                      nullable=False,
-                      index=indexed,),
-            sa.Column("updated_at",
-                      sa.TIMESTAMP(timezone=True),
-                      server_default=sa.func.now(),
-                      nullable=False,
-                      index=indexed,),
-            )
+    return (
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+            index=indexed,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+            index=indexed,
+        ),
+    )
 
 
 def create_todos_table() -> None:
@@ -87,7 +92,8 @@ def create_users_table() -> None:
             ON users
             FOR EACH ROW
         EXECUTE PROCEDURE update_updated_at_column()
-        """)
+        """
+    )
 
 
 def create_profle_table() -> None:
@@ -102,7 +108,8 @@ def create_profle_table() -> None:
         sa.Column("bio", sa.Text, nullable=True, server_default=""),
         sa.Column("image", sa.Text, nullable=True),
         sa.Column("user_id", sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE")),
-        *timestamps(),)
+        *timestamps(),
+    )
     op.execute(
         """
         CREATE TRIGGER update_profiles_modtime
@@ -110,7 +117,8 @@ def create_profle_table() -> None:
             ON profiles
             FOR EACH ROW
         EXECUTE PROCEDURE update_updated_at_column()
-        """)
+        """
+    )
 
 
 def create_note_table() -> None:
@@ -119,7 +127,8 @@ def create_note_table() -> None:
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column("notes_summary", sa.Text, nullable=True),
         sa.Column("todo_id", sa.Integer, sa.ForeignKey("todos.id", ondelete="CASCADE")),
-        *timestamps(),)
+        *timestamps(),
+    )
     op.execute(
         """
         CREATE TRIGGER update_notes_modtime
@@ -127,7 +136,8 @@ def create_note_table() -> None:
             ON notes
             FOR EACH ROW
         EXECUTE PROCEDURE update_updated_at_column()
-        """)
+        """
+    )
 
 
 def create_email_verification_table() -> None:
@@ -135,7 +145,8 @@ def create_email_verification_table() -> None:
         "email_verification",
         sa.Column("generated_code", sa.Text, nullable=False, index=True),
         sa.Column("user_id", sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True),
-        *timestamps(),)
+        *timestamps(),
+    )
     op.create_primary_key("pk_email_verification", "email_verification", ["generated_code", "user_id"])
     op.execute(
         """
@@ -144,7 +155,8 @@ def create_email_verification_table() -> None:
             ON email_verification
             FOR EACH ROW
         EXECUTE PROCEDURE update_updated_at_column()
-        """)
+        """
+    )
 
 
 def create_commment_table() -> None:
@@ -154,7 +166,8 @@ def create_commment_table() -> None:
         sa.Column("body", sa.Text, nullable=True, server_default=""),
         sa.Column("todo_id", sa.Integer, sa.ForeignKey("todos.id", ondelete="CASCADE")),
         sa.Column("comment_owner", sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE")),
-        *timestamps(),)
+        *timestamps(),
+    )
     op.execute(
         """
         CREATE TRIGGER update_comments_modtime
@@ -162,27 +175,89 @@ def create_commment_table() -> None:
             ON comments
             FOR EACH ROW
         EXECUTE PROCEDURE update_updated_at_column()
-        """)
+        """
+    )
 
 
-def create_assign_offer_table() -> None:
+def create_task_offer_table() -> None:
     op.create_table(
-        "user_assigns_or_offers_todos",
-        sa.Column("user_id", sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"),
-                  nullable=False, index=True,),
-        sa.Column("todo_id", sa.Integer, sa.ForeignKey("todos.id", ondelete="CASCADE"),
-                  nullable=False, index=True,),
+        "user_task_for_todos",
+        sa.Column(
+            "user_id",
+            sa.Integer,
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
+        sa.Column(
+            "todo_id",
+            sa.Integer,
+            sa.ForeignKey("todos.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
         sa.Column("status", sa.Text, nullable=False, server_default="pending", index=True),
-        *timestamps(),)
-    op.create_primary_key("pk_user_assigns_or_offers_todos", "user_assigns_or_offers_todos", ["user_id", "todo_id"])
+        *timestamps(),
+    )
+    op.create_primary_key("pk_user_task_for_todos", "user_task_for_todos", ["user_id", "todo_id"])
     op.execute(
         """
-        CREATE TRIGGER user_assigns_or_offers_todos_modtime
+        CREATE TRIGGER update_user_task_for_todos_modtime
             BEFORE UPDATE
-            ON user_assigns_or_offers_todos
+            ON user_task_for_todos
             FOR EACH ROW
         EXECUTE PROCEDURE update_updated_at_column()
-        """)
+        """
+    )
+
+
+def create_task_taker_evaluations_table() -> None:
+    """
+    Owner of a task (i.e. todo offered) should be able to evauluate the task taker's execution of the job.
+    - Allow owner to leave ratings, headline and comments.
+    - Add no show if the task was not done.
+    - Rating splits into sections
+        - professionalism - did they handle thinks likle pros?
+        - completeness - how through were they? did every detail needed in the task executed.
+        - efficiency - how quickly and effectively did they get the task done?
+        - overall - what's the rating for the task executed?
+    """
+    op.create_table(
+        "task_to_taker_evalations",
+        sa.Column(
+            "todo_id",
+            sa.Integer,
+            sa.ForeignKey("todos.id", ondelete="SET NULL"),
+            nullable=False,
+            index=True,
+        ),
+        sa.Column(
+            "taker_id",
+            sa.Integer,
+            sa.ForeignKey("users.id", ondelete="SET NULL"),
+            nullable=False,
+            index=True,
+        ),
+        sa.Column("no_show", sa.Boolean, nullable=False, server_default="False"),
+        sa.Column("headline", sa.Text, nullable=True),
+        sa.Column("comment", sa.Text, nullable=True),
+        sa.Column("professionalism", sa.Integer, nullable=True),
+        sa.Column("professionalism", sa.Integer, nullable=True),
+        sa.Column("completeness", sa.Integer, nullable=True),
+        sa.Column("efficiency", sa.Integer, nullable=True),
+        sa.Column("overall_rating", sa.Integer, nullable=False),
+        *timestamps(),
+    )
+    op.create_primary_key("pk_task_to_taker_evalations", "task_to_taker_evalations", ["todo_id", "taker_id"])
+    op.execute(
+        """
+        CREATE TRIGGER update_task_to_taker_evalations_modtime
+            BEFORE UPDATE
+            ON task_to_taker_evalations
+            FOR EACH ROW
+        EXECUTE PROCEDURE update_updated_at_column()
+        """
+    )
 
 
 def upgrade() -> None:
@@ -193,11 +268,13 @@ def upgrade() -> None:
     create_todos_table()
     create_commment_table()
     create_note_table()
-    create_assign_offer_table()
+    create_task_offer_table()
+    create_task_taker_evaluations_table()
 
 
 def downgrade() -> None:
-    op.drop_table("user_assigns_or_offers_todos")
+    op.drop_table("task_to_taker_evalations")
+    op.drop_table("user_task_for_todos")
     op.drop_table("comments")
     op.drop_table("notes")
     op.drop_table("todos")

@@ -5,12 +5,16 @@ from typing import List
 from app.api.dependencies.auth import get_current_active_user
 from app.api.dependencies.database import get_repository
 from app.api.dependencies.tasks import (
-    check_offer_list_permissions, check_task_create_permissions,
-    check_task_get_permissions, check_task_offer_acceptance_permissions,
-    check_task_offer_cancel_permissions, check_task_offer_rescind_permissions,
+    check_offer_list_permissions,
+    check_task_create_permissions,
+    check_task_get_permissions,
+    check_task_offer_acceptance_permissions,
+    check_task_offer_cancel_permissions,
+    check_task_offer_rescind_permissions,
     get_offer_for_task_from_user_by_path,
     get_task_offers_for_todo_from_current_user,
-    list_offers_for_task_by_id_from_path)
+    list_offers_for_task_by_id_from_path,
+)
 from app.api.dependencies.todos import get_todo_by_id_from_path
 from app.db.repositories.tasks import TasksRepository
 from app.models.task import TaskCreate, TaskInDB, TaskPublic
@@ -19,6 +23,7 @@ from app.models.user import UserInDB
 from fastapi import APIRouter, Body, Depends, status
 
 router = APIRouter()
+
 
 # TODO: Do latter
 @router.post(

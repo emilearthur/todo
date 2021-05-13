@@ -8,32 +8,32 @@ from app.models.todo import TodoInDB
 from app.models.user import UserInDB
 
 CREATE_TASK_FOR_TODO_QUERY = """
-    INSERT INTO user_assigns_or_offers_todos (todo_id, user_id, status)
+    INSERT INTO user_task_for_todos (todo_id, user_id, status)
     VALUES (:todo_id, :user_id, :status)
     RETURNING todo_id, user_id, status, created_at, updated_at;
 """
 
 LIST_OFFERS_FOR_TASK_QUERY = """
     SELECT todo_id, user_id, status, created_at, updated_at
-    FROM user_assigns_or_offers_todos
+    FROM user_task_for_todos
     WHERE todo_id = :todo_id;
 """
 
 GET_OFFER_FOR_TASK_FROM_USER_QUERY = """
     SELECT todo_id, user_id, status, created_at, updated_at
-    FROM user_assigns_or_offers_todos
+    FROM user_task_for_todos
     WHERE todo_id = :todo_id AND user_id = :user_id;
 """
 
 ACCEPT_OFFER_FOR_TASK_QUERY = """
-    UPDATE user_assigns_or_offers_todos
+    UPDATE user_task_for_todos
     SET status = 'accepted'
     WHERE todo_id = :todo_id AND user_id = :user_id
     RETURNING todo_id, user_id, status, created_at, updated_at;
 """
 
 REJECT_ALL_OTHER_OFFERS_FOR_TASK_QUERY = """
-    UPDATE user_assigns_or_offers_todos
+    UPDATE user_task_for_todos
     SET status = 'rejected'
     WHERE todo_id = :todo_id
     AND user_id != :user_id
@@ -41,14 +41,14 @@ REJECT_ALL_OTHER_OFFERS_FOR_TASK_QUERY = """
 """
 
 CANCEL_OFFER_FOR_TASK_QUERY = """
-    UPDATE user_assigns_or_offers_todos
+    UPDATE user_task_for_todos
     SET status = 'cancelled'
     WHERE todo_id = :todo_id AND user_id = :user_id
     RETURNING todo_id, user_id, status, created_at, updated_at;
 """
 
 SET_ALL_OTHER_OFFERS_FOR_TASK_AS_PENDING_QUERY = """
-    UPDATE user_assigns_or_offers_todos
+    UPDATE user_task_for_todos
     SET status = 'pending'
     WHERE todo_id = :todo_id
     AND user_id != :user_id
@@ -56,7 +56,7 @@ SET_ALL_OTHER_OFFERS_FOR_TASK_AS_PENDING_QUERY = """
 """
 
 RESCIND_OFFER_FOR_TASK_QUERY = """
-    DELETE FROM user_assigns_or_offers_todos
+    DELETE FROM user_task_for_todos
     WHERE todo_id = :todo_id
     AND user_id = :user_id
 """
