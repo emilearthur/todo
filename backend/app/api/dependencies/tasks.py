@@ -26,7 +26,7 @@ async def check_task_create_permissions(
     if await tasks_repo.get_offer_for_task_from_user(todo=todo, user=current_user):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Users aren't allowed create more than one offer for a cleaning job.",
+            detail="Users aren't allowed create more than one offer for a todo job.",
         )
 
 

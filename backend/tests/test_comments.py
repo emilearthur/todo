@@ -3,15 +3,15 @@
 from typing import Dict, List, Optional, Union
 
 import pytest
-from databases.core import Database
-from fastapi import FastAPI, status
-from fastapi.encoders import jsonable_encoder
-from httpx import AsyncClient
-
 from app.db.repositories.comments import CommentsRepository
 from app.models.comment import CommentCreate, CommentInDB, CommentPublic
 from app.models.todo import TodoInDB
 from app.models.user import UserInDB
+from databases.core import Database
+from fastapi import FastAPI, status
+from fastapi.encoders import jsonable_encoder
+from httpx import AsyncClient
+from redis.client import Redis
 
 # from databases import Database
 
@@ -30,22 +30,14 @@ class TestCommentRoute:
         """Test for routes."""
         res = await client.post(app.url_path_for("comments:create-comment"), json={})
         assert res.status_code != status.HTTP_404_NOT_FOUND
-        res = await client.put(
-            app.url_path_for("comments:update-comment-by-id", comment_id=1)
-        )
+        res = await client.put(app.url_path_for("comments:update-comment-by-id", comment_id=1))
         assert res.status_code != status.HTTP_404_NOT_FOUND
-        res = await client.delete(
-            app.url_path_for("comments:delete-comment-by-id", comment_id=0)
-        )
+        res = await client.delete(app.url_path_for("comments:delete-comment-by-id", comment_id=0))
         assert res.status_code != status.HTTP_404_NOT_FOUND
 
-    async def test_invalid_input_raises_error(
-        self, app: FastAPI, authorized_client: AsyncClient
-    ) -> None:
+    async def test_invalid_input_raises_error(self, app: FastAPI, authorized_client: AsyncClient) -> None:
         """Test invalid comment returns 422."""
-        res = await authorized_client.post(
-            app.url_path_for("comments:create-comment"), json={}
-        )
+        res = await authorized_client.post(app.url_path_for("comments:create-comment"), json={})
         assert res.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
@@ -132,23 +124,15 @@ class TestUpdateComment:
         attrs_to_change: List[str],
         values: List[str],
     ) -> None:
-        comments_update = {
-            "comment_update": {
-                attrs_to_change[i]: values[i] for i in range(len(attrs_to_change))
-            }
-        }
+        comments_update = {"comment_update": {attrs_to_change[i]: values[i] for i in range(len(attrs_to_change))}}
         res = await authorized_client.put(
-            app.url_path_for(
-                "comments:update-comment-by-id", comment_id=test_comment.id
-            ),
+            app.url_path_for("comments:update-comment-by-id", comment_id=test_comment.id),
             json=jsonable_encoder(comments_update),
         )
         assert res.status_code == status.HTTP_200_OK
         updated_comment = CommentInDB(**res.json())
         for i in range(len(attrs_to_change)):
-            assert getattr(updated_comment, attrs_to_change[i]) != getattr(
-                test_comment, attrs_to_change[i]
-            )
+            assert getattr(updated_comment, attrs_to_change[i]) != getattr(test_comment, attrs_to_change[i])
             assert getattr(updated_comment, attrs_to_change[i]) == values[i]
         for attr, value in updated_comment.dict().items():
             if attr not in attrs_to_change and attr != "updated_at":
@@ -161,12 +145,8 @@ class TestUpdateComment:
         test_comment_list: List[CommentInDB],
     ) -> None:
         res = await authorized_client.put(
-            app.url_path_for(
-                "comments:update-comment-by-id", comment_id=test_comment_list[0].id
-            ),
-            json=jsonable_encoder(
-                {"comment_update": {"body": "new test comments here"}}
-            ),
+            app.url_path_for("comments:update-comment-by-id", comment_id=test_comment_list[0].id),
+            json=jsonable_encoder({"comment_update": {"body": "new test comments here"}}),
         )
         assert res.status_code == status.HTTP_403_FORBIDDEN
 
@@ -179,9 +159,7 @@ class TestUpdateComment:
         test_user2: UserInDB,
     ) -> None:
         res = await authorized_client.put(
-            app.url_path_for(
-                "comments:update-comment-by-id", comment_id=test_comment.id
-            ),
+            app.url_path_for("comments:update-comment-by-id", comment_id=test_comment.id),
             json=jsonable_encoder({"todo_update": {"comment_owner": test_user2.id}}),
         )
         assert res.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -221,28 +199,23 @@ class TestDeleteComment:
         test_comment: CommentInDB,
         test_user: UserInDB,
         db: Database,
+        r_db: Redis,
     ) -> None:
-        comments_repo = CommentsRepository(db)
+        comments_repo = CommentsRepository(db, r_db)
 
         res = await authorized_client.delete(
-            app.url_path_for(
-                "comments:delete-comment-by-id", comment_id=test_comment.id
-            )
+            app.url_path_for("comments:delete-comment-by-id", comment_id=test_comment.id)
         )
         assert res.status_code == status.HTTP_200_OK
         # update comments to check if comment exists. should reutrn 404
         comment_update = {"comment_update": {"body": "test3"}}
         res = await authorized_client.put(
-            app.url_path_for(
-                "comments:update-comment-by-id", comment_id=test_comment.id
-            ),
+            app.url_path_for("comments:update-comment-by-id", comment_id=test_comment.id),
             json=comment_update,
         )
         assert res.status_code == status.HTTP_404_NOT_FOUND
 
-        comment = await comments_repo.get_comments_by_id(
-            id=test_comment.id, requesting_user=test_user
-        )
+        comment = await comments_repo.get_comments_by_id(id=test_comment.id, requesting_user=test_user)
         assert comment is None
 
     async def test_user_cannot_delete_others_comment(
@@ -252,9 +225,7 @@ class TestDeleteComment:
         test_comment_list: List[CommentInDB],
     ) -> None:
         res = await authorized_client.delete(
-            app.url_path_for(
-                "comments:delete-comment-by-id", comment_id=test_comment_list[0].id
-            )
+            app.url_path_for("comments:delete-comment-by-id", comment_id=test_comment_list[0].id)
         )
         assert res.status_code == status.HTTP_403_FORBIDDEN
 
@@ -275,9 +246,7 @@ class TestDeleteComment:
         id: int,
         status_code: int,
     ) -> None:
-        res = await authorized_client.delete(
-            app.url_path_for("comments:delete-comment-by-id", comment_id=id)
-        )
+        res = await authorized_client.delete(app.url_path_for("comments:delete-comment-by-id", comment_id=id))
         assert res.status_code == status_code
 
 
@@ -292,9 +261,7 @@ class TestGetComment:
         test_comment: CommentInDB,
         test_comment_2: CommentInDB,
     ) -> None:
-        res = await authorized_client.get(
-            app.url_path_for("todos:list-all-todo-comments", todo_id=test_todo.id)
-        )
+        res = await authorized_client.get(app.url_path_for("todos:list-all-todo-comments", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_200_OK
         assert isinstance(res.json(), list)
         assert len(res.json()) > 0

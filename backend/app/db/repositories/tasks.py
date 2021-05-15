@@ -6,6 +6,7 @@ from app.db.repositories.base import BaseRepository
 from app.models.task import TaskCreate, TaskInDB
 from app.models.todo import TodoInDB
 from app.models.user import UserInDB
+from fastapi import HTTPException, status
 
 CREATE_TASK_FOR_TODO_QUERY = """
     INSERT INTO user_task_for_todos (todo_id, user_id, status)
@@ -64,6 +65,21 @@ RESCIND_OFFER_FOR_TASK_QUERY = """
 
 class TasksRepository(BaseRepository):
     """class for tasks."""
+
+    async def set_task_for_todo_for_user(self, *, todo: TodoInDB, task_taker: UserInDB):
+        """Set a task for user and accept."""
+        if await self.get_offer_for_task_from_user(todo=todo, user=task_taker):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Users aren't allowed set a todo task more than once",
+            )
+        await self.create_task_for_todo(new_task=TaskCreate(todo_id=todo.id, user_id=task_taker.id))
+        task = await self.get_offer_for_task_from_user(todo=todo, user=task_taker)
+        if not task:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+
+        accepted_task = await self.accept_offer_for_task(task=task)
+        return accepted_task
 
     async def create_task_for_todo(self, *, new_task: TaskCreate) -> TaskInDB:
         """Create a task of a todo."""
