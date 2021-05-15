@@ -140,23 +140,23 @@ def create_note_table() -> None:
     )
 
 
-def create_email_verification_table() -> None:
-    op.create_table(
-        "email_verification",
-        sa.Column("generated_code", sa.Text, nullable=False, index=True),
-        sa.Column("user_id", sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True),
-        *timestamps(),
-    )
-    op.create_primary_key("pk_email_verification", "email_verification", ["generated_code", "user_id"])
-    op.execute(
-        """
-        CREATE TRIGGER update_email_modtime
-            BEFORE UPDATE
-            ON email_verification
-            FOR EACH ROW
-        EXECUTE PROCEDURE update_updated_at_column()
-        """
-    )
+# def create_email_verification_table() -> None:
+#     op.create_table(
+#         "email_verification",
+#         sa.Column("generated_code", sa.Text, nullable=False, index=True),
+#         sa.Column("user_id", sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True),
+#         *timestamps(),
+#     )
+#     op.create_primary_key("pk_email_verification", "email_verification", ["generated_code", "user_id"])
+#     op.execute(
+#         """
+#         CREATE TRIGGER update_email_modtime
+#             BEFORE UPDATE
+#             ON email_verification
+#             FOR EACH ROW
+#         EXECUTE PROCEDURE update_updated_at_column()
+#         """
+#     )
 
 
 def create_commment_table() -> None:
@@ -264,7 +264,7 @@ def upgrade() -> None:
     create_updated_at_trigger()
     create_users_table()
     create_profle_table()
-    create_email_verification_table()
+    # create_email_verification_table()
     create_todos_table()
     create_commment_table()
     create_note_table()
