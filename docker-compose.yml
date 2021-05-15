@@ -13,6 +13,7 @@ services:
       - 8000:8000
     depends_on:
       - db
+      - redis
   db:
     image: postgres:12.1-alpine
     volumes:
@@ -21,6 +22,28 @@ services:
       - ./backend/.env
     ports:
       - 5432:5432
+  
+  redis:
+    image: redis:alpine
+    volumes:
+      - ./redis-data:/data
+    env_file:
+      - ./backend/.env
+    ports:
+      - 6379:6379
+    command:
+      - "--save 10 100"
+      - "--requirepass password"
+
+  redisinsight:
+    image: redislabs/redisinsight
+    ports:
+      - 8001:8001
+    volumes:
+      - redisinsight:/db
+    
 
 volumes:
     postgres_data:
+    redis-data:
+    redisinsight:

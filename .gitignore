@@ -6,3 +6,17 @@ __pycache__/
 .travis.yml
 pytest.ini
 .devcontainer
+
+# Unit test / coverage reports
+htmlcov/
+html_coverage_report/
+.tox/
+.coverage
+.coverage.*
+.coveragerc
+setup.cfg
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/

@@ -15,5 +15,5 @@ async def get_user_by_username_from_path(
     """Get user from path."""
     user = await users_repo.get_user_by_username(username=username, populate=False)
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No user found with that id.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No user found with that username.")
     return user

@@ -2,11 +2,10 @@
 
 from typing import List
 
-from fastapi import HTTPException, status
-
 from app.db.repositories.base import BaseRepository
 from app.models.todo import TodoCreate, TodoInDB, TodoUpdate
 from app.models.user import UserInDB
+from fastapi import HTTPException, status
 
 CREATE_TODO_QUERY = """
     INSERT INTO todos (name, notes, priority, duedate, owner)
@@ -79,9 +78,10 @@ class TodosRepository(BaseRepository):
         if todo_updated_params.priority is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid priority type, Cannot be None")
 
-        todo_updated = await self.db.fetch_one(query=UPDATE_TODO_BY_ID_QUERY,
-                                               values=todo_updated_params.dict(exclude={"owner", "created_at",
-                                                                                        "updated_at"}),)
+        todo_updated = await self.db.fetch_one(
+            query=UPDATE_TODO_BY_ID_QUERY,
+            values=todo_updated_params.dict(exclude={"owner", "created_at", "updated_at"}),
+        )
         return TodoInDB(**todo_updated)
 
     async def delete_todo_by_id(self, *, todo: TodoInDB) -> int:

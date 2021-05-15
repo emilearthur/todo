@@ -21,6 +21,7 @@ from asgi_lifespan import LifespanManager
 from databases import Database
 from fastapi import FastAPI
 from httpx import AsyncClient
+from redis.client import Redis
 
 
 # apply migration at beginning and end of testing session
@@ -48,6 +49,11 @@ def db(app: FastAPI) -> Database:
     return app.state._db
 
 
+@pytest.fixture
+def r_db(app: FastAPI) -> Database:
+    return app.state._redis
+
+
 # make requests in our test
 @pytest.fixture
 async def client(app: FastAPI) -> AsyncClient:
@@ -71,8 +77,8 @@ def new_todo():
 
 
 @pytest.fixture
-async def test_todo(db: Database, test_user: UserInDB) -> TodoInDB:
-    todo_repo = TodosRepository(db)
+async def test_todo(db: Database, r_db: Redis, test_user: UserInDB) -> TodoInDB:
+    todo_repo = TodosRepository(db, r_db)
     new_todo = TodoCreate(
         name="test todo",
         notes="test notes",
@@ -88,15 +94,15 @@ def new_comment(test_todo: TodoInDB):
 
 
 @pytest.fixture
-async def test_comment(db: Database, test_user: UserInDB, test_todo: TodoInDB) -> CommentInDB:
-    comments_repo = CommentsRepository(db)
+async def test_comment(db: Database, r_db: Redis, test_user: UserInDB, test_todo: TodoInDB) -> CommentInDB:
+    comments_repo = CommentsRepository(db, r_db)
     new_comment = CommentCreate(body="test comments", todo_id=test_todo.id)
     return await comments_repo.create_comment(new_comment=new_comment, requesting_user=test_user)
 
 
 @pytest.fixture
-async def test_comment_2(db: Database, test_user2: UserInDB, test_todo: TodoInDB) -> CommentInDB:
-    comments_repo = CommentsRepository(db)
+async def test_comment_2(db: Database, r_db: Redis, test_user2: UserInDB, test_todo: TodoInDB) -> CommentInDB:
+    comments_repo = CommentsRepository(db, r_db)
     new_comment = CommentCreate(body="test comments", todo_id=test_todo.id)
     return await comments_repo.create_comment(new_comment=new_comment, requesting_user=test_user2)
 
@@ -144,8 +150,8 @@ def authorized_client(client: AsyncClient, test_user: UserInDB) -> AsyncClient:
 
 
 @pytest.fixture
-async def test_todos_list(db: Database, test_user2: UserInDB) -> List[TodoInDB]:
-    todo_repo = TodosRepository(db)
+async def test_todos_list(db: Database, r_db: Redis, test_user2: UserInDB) -> List[TodoInDB]:
+    todo_repo = TodosRepository(db, r_db)
     return [
         await todo_repo.create_todo(
             new_todo=TodoCreate(
@@ -161,8 +167,10 @@ async def test_todos_list(db: Database, test_user2: UserInDB) -> List[TodoInDB]:
 
 
 @pytest.fixture
-async def test_comment_list(db: Database, test_user2: UserInDB, test_todos_list: List[TodoInDB]) -> List[CommentInDB]:
-    comments_repo = CommentsRepository(db)
+async def test_comment_list(
+    db: Database, r_db: Redis, test_user2: UserInDB, test_todos_list: List[TodoInDB]
+) -> List[CommentInDB]:
+    comments_repo = CommentsRepository(db, r_db)
     return [
         await comments_repo.create_comment(
             new_comment=CommentCreate(body=f"test comment {i}", todo_id=test_todos_list[i].id),
@@ -185,8 +193,8 @@ def create_authorized_client(client: AsyncClient) -> Callable:
     return _create_authorized_client
 
 
-async def user_fixture_helper(*, db: Database, new_user: UserCreate) -> UserInDB:
-    users_repo = UsersRepository(db)
+async def user_fixture_helper(*, db: Database, r_db: Redis, new_user: UserCreate) -> UserInDB:
+    users_repo = UsersRepository(db, r_db)
     existing_user = await users_repo.get_user_by_email(email=new_user.email)
     if existing_user:
         return existing_user
@@ -194,39 +202,39 @@ async def user_fixture_helper(*, db: Database, new_user: UserCreate) -> UserInDB
 
 
 @pytest.fixture
-async def test_user(db: Database) -> UserInDB:
+async def test_user(db: Database, r_db: Redis) -> UserInDB:
     new_user = UserCreate(email="frederickauthur@hotmail.com", username="frederickauthur", password="mypassword")
-    return await user_fixture_helper(db=db, new_user=new_user)
+    return await user_fixture_helper(db=db, r_db=r_db, new_user=new_user)
 
 
 @pytest.fixture
-async def test_user2(db: Database) -> UserInDB:
+async def test_user2(db: Database, r_db: Redis) -> UserInDB:
     new_user = UserCreate(email="emilextrig@hotmail.com", username="emilextrig", password="somepassword")
-    return await user_fixture_helper(db=db, new_user=new_user)
+    return await user_fixture_helper(db=db, r_db=r_db, new_user=new_user)
 
 
 @pytest.fixture
-async def test_user3(db: Database) -> UserInDB:
+async def test_user3(db: Database, r_db: Redis) -> UserInDB:
     new_user = UserCreate(email="jojo@gmail.com", username="jojo", password="morepassword")
-    return await user_fixture_helper(db=db, new_user=new_user)
+    return await user_fixture_helper(db=db, r_db=r_db, new_user=new_user)
 
 
 @pytest.fixture
-async def test_user4(db: Database) -> UserInDB:
+async def test_user4(db: Database, r_db: Redis) -> UserInDB:
     new_user = UserCreate(email="akosua@hermail.com", username="akosua", password="moremorepassword")
-    return await user_fixture_helper(db=db, new_user=new_user)
+    return await user_fixture_helper(db=db, r_db=r_db, new_user=new_user)
 
 
 @pytest.fixture
-async def test_user5(db: Database) -> UserInDB:
+async def test_user5(db: Database, r_db: Redis) -> UserInDB:
     new_user = UserCreate(email="janet@jackson.com", username="janet", password="somorepassword")
-    return await user_fixture_helper(db=db, new_user=new_user)
+    return await user_fixture_helper(db=db, r_db=r_db, new_user=new_user)
 
 
 @pytest.fixture
-async def test_user6(db: Database) -> UserInDB:
+async def test_user6(db: Database, r_db: Redis) -> UserInDB:
     new_user = UserCreate(email="jay@cole.com", username="jaycole", password="jaycolepwd")
-    return await user_fixture_helper(db=db, new_user=new_user)
+    return await user_fixture_helper(db=db, r_db=r_db, new_user=new_user)
 
 
 @pytest.fixture
@@ -237,9 +245,11 @@ async def test_user_list(
 
 
 @pytest.fixture
-async def test_todo_with_tasks(db: Database, test_user2: UserInDB, test_user_list: List[UserInDB]) -> TodoInDB:
-    todos_repo = TodosRepository(db)
-    tasks_repo = TasksRepository(db)
+async def test_todo_with_tasks(
+    db: Database, r_db: Redis, test_user2: UserInDB, test_user_list: List[UserInDB]
+) -> TodoInDB:
+    todos_repo = TodosRepository(db, r_db)
+    tasks_repo = TasksRepository(db, r_db)
 
     new_todo = TodoCreate(
         name="todo with an offer",
@@ -255,10 +265,10 @@ async def test_todo_with_tasks(db: Database, test_user2: UserInDB, test_user_lis
 
 @pytest.fixture
 async def test_todo_with_accepted_task_offer(
-    db: Database, test_user2: UserInDB, test_user3: UserInDB, test_user_list: List[UserInDB]
+    db: Database, r_db: Redis, test_user2: UserInDB, test_user3: UserInDB, test_user_list: List[UserInDB]
 ) -> TodoInDB:
-    todos_repo = TodosRepository(db)
-    tasks_repo = TasksRepository(db)
+    todos_repo = TodosRepository(db, r_db)
+    tasks_repo = TasksRepository(db, r_db)
 
     new_todo = TodoCreate(
         name="todo with an offer",

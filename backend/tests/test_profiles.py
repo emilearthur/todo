@@ -1,13 +1,13 @@
 """Test scipt for profile endpoint."""
 
 import pytest
-from databases import Database
-from fastapi import FastAPI, status
-from httpx import AsyncClient
-
 from app.db.repositories.profiles import ProfilesRepository
 from app.models.profile import ProfileInDB, ProfilePublic
 from app.models.user import UserInDB, UserPublic
+from databases import Database
+from fastapi import FastAPI, status
+from httpx import AsyncClient
+from redis.client import Redis
 
 pytestmark = pytest.mark.asyncio
 
@@ -31,9 +31,9 @@ class TestProfileRoutes:
 
 class TestProfileCreate:
     async def test_profile_created_for_new_user(
-        self, app: FastAPI, client: AsyncClient, db: Database
+        self, app: FastAPI, client: AsyncClient, db: Database, r_db: Redis,
     ) -> None:
-        profiles_repo = ProfilesRepository(db)
+        profiles_repo = ProfilesRepository(db, r_db)
 
         new_user = {
             "email": "frederick@emile.com",

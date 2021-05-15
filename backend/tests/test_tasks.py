@@ -19,9 +19,9 @@ class TestTaskRoutes:
 
     async def test_routes_exist(self, app: FastAPI, client: AsyncClient):
         """Making sure all routues are working."""
-        res = await client.post(app.url_path_for("assigns:set-task", todo_id=1))
+        res = await client.post(app.url_path_for("assigns:set-task", todo_id=1, username="johnmensah"))
         assert res.status_code != status.HTTP_404_NOT_FOUND
-        res = await client.post(app.url_path_for("assigns:create-task", todo_id=1))
+        res = await client.post(app.url_path_for("assigns:create-offer-for-task", todo_id=1))
         assert res.status_code != status.HTTP_404_NOT_FOUND
         res = await client.get(app.url_path_for("assigns:get_offer_from_user", todo_id=1, username="johnmensah"))
         assert res.status_code != status.HTTP_404_NOT_FOUND
@@ -46,7 +46,7 @@ class TestCreateTask:
         test_user3: UserInDB,
     ) -> None:
         authorized_client = create_authorized_client(user=test_user3)
-        res = await authorized_client.post(app.url_path_for("assigns:create-task", todo_id=test_todo.id))
+        res = await authorized_client.post(app.url_path_for("assigns:create-offer-for-task", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_201_CREATED
         task = TaskInDB(**res.json())
         assert task.user_id == test_user3.id
@@ -57,10 +57,10 @@ class TestCreateTask:
         self, app: FastAPI, create_authorized_client: Callable, test_todo: TodoInDB, test_user4: UserInDB
     ) -> None:
         authorized_client = create_authorized_client(user=test_user4)
-        res = await authorized_client.post(app.url_path_for("assigns:create-task", todo_id=test_todo.id))
+        res = await authorized_client.post(app.url_path_for("assigns:create-offer-for-task", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_201_CREATED
 
-        res = await authorized_client.post(app.url_path_for("assigns:create-task", todo_id=test_todo.id))
+        res = await authorized_client.post(app.url_path_for("assigns:create-offer-for-task", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_400_BAD_REQUEST
 
     async def test_user_unable_to_create_task_for_their_own_todo_job(
@@ -70,13 +70,13 @@ class TestCreateTask:
         test_user: UserInDB,
         test_todo: TodoInDB,
     ) -> None:
-        res = await authorized_client.post(app.url_path_for("assigns:create-task", todo_id=test_todo.id))
+        res = await authorized_client.post(app.url_path_for("assigns:create-offer-for-task", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_400_BAD_REQUEST
 
     async def test_unauthenticated_users_cant_create_todo(
         self, app: FastAPI, client: AsyncClient, test_todo: TodoInDB
     ) -> None:
-        res = await client.post(app.url_path_for("assigns:create-task", todo_id=test_todo.id))
+        res = await client.post(app.url_path_for("assigns:create-offer-for-task", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.parametrize(
@@ -91,7 +91,7 @@ class TestCreateTask:
         self, app: FastAPI, create_authorized_client: Callable, test_user5: UserInDB, id: int, status_code: int
     ) -> None:
         authorized_client = create_authorized_client(user=test_user5)
-        res = await authorized_client.post(app.url_path_for("assigns:create-task", todo_id=id))
+        res = await authorized_client.post(app.url_path_for("assigns:create-offer-for-task", todo_id=id))
         assert res.status_code == status_code
 
 
@@ -334,7 +334,7 @@ class TestCancelTasks:
             app.url_path_for("assigns:cancel-task-from-user", todo_id=test_todo_with_accepted_task_offer.id)
         )
         assert res.status_code == status.HTTP_200_OK
-        tasks_repo = TasksRepository(app.state._db)
+        tasks_repo = TasksRepository(app.state._db, app.state._redis)
         offers = await tasks_repo.list_offers_for_task(todo=test_todo_with_accepted_task_offer)
         for offer in offers:
             if offer.user_id == test_user3.id:
@@ -360,7 +360,7 @@ class TestRescindTasks:
             app.url_path_for("assigns:rescind-task-from-user", todo_id=test_todo_with_tasks.id)
         )
         assert res.status_code == status.HTTP_200_OK
-        tasks_repo = TasksRepository(app.state._db)
+        tasks_repo = TasksRepository(app.state._db, app.state._redis)
         offers = await tasks_repo.list_offers_for_task(todo=test_todo_with_tasks)
         user_ids = [user.id for user in test_user_list]
         for offer in offers:

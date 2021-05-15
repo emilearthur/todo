@@ -22,6 +22,10 @@ POSTGRES_SERVER = config("POSTGRES_SERVER", cast=str, default="db")
 POSTGRES_PORT = config("POSTGRES_PORT", cast=str, default="5432")
 POSTGRES_DB = config("POSTGRES_DB", cast=str)
 
+REDIS_HOST = config("REDIS_HOST", cast=str, default="redis")
+REDIS_PASSWORD = config("REDIS_PASSWORD", cast=Secret)
+REDIS_PORT = config("REDIS_PORT", cast=str, default="6379")
+
 EMAIL_ADDR = config("EMAIL", cast=str)
 EMAIL_PWD = config("EMAIL_PWD", cast=str)
 EMAIL_USERNAME = config("EMAIL_USERNAME", cast=str, default="EMILEX TRIG")
@@ -31,3 +35,5 @@ DATABASE_URL = config(
     cast=DatabaseURL,
     default=f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}",
 )
+
+REDIS_URL = config("REDIS_URL", cast=str, default=f"redis://{REDIS_HOST}")

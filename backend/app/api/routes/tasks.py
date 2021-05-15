@@ -16,6 +16,7 @@ from app.api.dependencies.tasks import (
     list_offers_for_task_by_id_from_path,
 )
 from app.api.dependencies.todos import get_todo_by_id_from_path
+from app.api.dependencies.users import get_user_by_username_from_path
 from app.db.repositories.tasks import TasksRepository
 from app.models.task import TaskCreate, TaskInDB, TaskPublic
 from app.models.todo import TodoInDB
@@ -25,22 +26,27 @@ from fastapi import APIRouter, Body, Depends, status
 router = APIRouter()
 
 
-# TODO: Do latter
+# TODO: Do latter: set a task with usename
 @router.post(
-    "/set",
+    "/{username}/set/",
     response_model=TaskPublic,
     name="assigns:set-task",
     status_code=status.HTTP_201_CREATED,
 )
-async def set_task(task_create: TaskCreate = Body(..., embed=True)) -> TaskPublic:
-    """Assign a task."""
-    return None
+async def set_task(
+    todo: TodoInDB = Depends(get_todo_by_id_from_path),
+    # task: TaskInDB = Depends(get_offer_for_task_from_user_by_path),
+    tasks_repo: TasksRepository = Depends(get_repository(TasksRepository)),
+    user: UserInDB = Depends(get_user_by_username_from_path),
+) -> TaskPublic:
+    """Assign a todo as a task to another user."""
+    return await tasks_repo.set_task_for_todo_for_user(todo=todo, task_taker=user)
 
 
 @router.post(
     "/",
     response_model=TaskPublic,
-    name="assigns:create-task",
+    name="assigns:create-offer-for-task",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(check_task_create_permissions)],
 )
