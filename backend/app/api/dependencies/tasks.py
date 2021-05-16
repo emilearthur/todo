@@ -23,6 +23,11 @@ async def check_task_create_permissions(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Users are unable to create tasks for todo jobs they own"
         )
+    if todo.as_task is False:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Users unable to create tasks for todo jobs with as_task True",
+        )
     if await tasks_repo.get_offer_for_task_from_user(todo=todo, user=current_user):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

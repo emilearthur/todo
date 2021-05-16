@@ -73,6 +73,7 @@ def new_todo():
         notes="test notes",
         priority="critical",
         duedate=datetime.date.today(),
+        as_task=False,
     )
 
 
@@ -84,6 +85,20 @@ async def test_todo(db: Database, r_db: Redis, test_user: UserInDB) -> TodoInDB:
         notes="test notes",
         priority="critical",
         duedate=datetime.date.today(),
+        as_task=False,
+    )
+    return await todo_repo.create_todo(new_todo=new_todo, requesting_user=test_user)
+
+
+@pytest.fixture
+async def test_todo_astask(db: Database, r_db: Redis, test_user: UserInDB) -> TodoInDB:
+    todo_repo = TodosRepository(db, r_db)
+    new_todo = TodoCreate(
+        name="test todo3",
+        notes="test notes3",
+        priority="critical",
+        duedate=datetime.date.today(),
+        as_task=True,
     )
     return await todo_repo.create_todo(new_todo=new_todo, requesting_user=test_user)
 
@@ -163,6 +178,24 @@ async def test_todos_list(db: Database, r_db: Redis, test_user2: UserInDB) -> Li
             requesting_user=test_user2,
         )
         for i in range(5)
+    ]
+
+
+@pytest.fixture
+async def test_todos_list_as_task(db: Database, r_db: Redis, test_user2: UserInDB) -> List[TodoInDB]:
+    todo_repo = TodosRepository(db, r_db)
+    return [
+        await todo_repo.create_todo(
+            new_todo=TodoCreate(
+                name=f"test todo {i}",
+                notes="some notes",
+                priority="critical",
+                duedate=datetime.date.today(),
+                as_task=True,
+            ),
+            requesting_user=test_user2,
+        )
+        for i in range(2)
     ]
 
 

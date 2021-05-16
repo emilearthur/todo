@@ -42,25 +42,42 @@ class TestCreateTask:
         self,
         app: FastAPI,
         create_authorized_client: Callable,
+        test_todo_astask: TodoInDB,
+        test_user3: UserInDB,
+    ) -> None:
+        authorized_client = create_authorized_client(user=test_user3)
+        res = await authorized_client.post(
+            app.url_path_for("assigns:create-offer-for-task", todo_id=test_todo_astask.id)
+        )
+        assert res.status_code == status.HTTP_201_CREATED
+        task = TaskInDB(**res.json())
+        assert task.user_id == test_user3.id
+        assert task.todo_id == test_todo_astask.id
+        assert task.status == "pending"
+
+    async def test_user_cant_successfully_create_task_for_other_users_todo_task_with_as_task_false(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
         test_todo: TodoInDB,
         test_user3: UserInDB,
     ) -> None:
         authorized_client = create_authorized_client(user=test_user3)
         res = await authorized_client.post(app.url_path_for("assigns:create-offer-for-task", todo_id=test_todo.id))
-        assert res.status_code == status.HTTP_201_CREATED
-        task = TaskInDB(**res.json())
-        assert task.user_id == test_user3.id
-        assert task.todo_id == test_todo.id
-        assert task.status == "pending"
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
 
     async def test_user_cant_create_duplicate_task(
-        self, app: FastAPI, create_authorized_client: Callable, test_todo: TodoInDB, test_user4: UserInDB
+        self, app: FastAPI, create_authorized_client: Callable, test_todo_astask: TodoInDB, test_user4: UserInDB
     ) -> None:
         authorized_client = create_authorized_client(user=test_user4)
-        res = await authorized_client.post(app.url_path_for("assigns:create-offer-for-task", todo_id=test_todo.id))
+        res = await authorized_client.post(
+            app.url_path_for("assigns:create-offer-for-task", todo_id=test_todo_astask.id)
+        )
         assert res.status_code == status.HTTP_201_CREATED
 
-        res = await authorized_client.post(app.url_path_for("assigns:create-offer-for-task", todo_id=test_todo.id))
+        res = await authorized_client.post(
+            app.url_path_for("assigns:create-offer-for-task", todo_id=test_todo_astask.id)
+        )
         assert res.status_code == status.HTTP_400_BAD_REQUEST
 
     async def test_user_unable_to_create_task_for_their_own_todo_job(

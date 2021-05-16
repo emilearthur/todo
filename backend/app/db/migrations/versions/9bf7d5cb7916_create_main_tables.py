@@ -59,6 +59,7 @@ def create_todos_table() -> None:
         sa.Column("priority", sa.Text, nullable=False, server_default="high"),
         sa.Column("duedate", sa.Date, nullable=False, index=True),
         sa.Column("owner", sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE")),
+        sa.Column("as_task", sa.Boolean(), nullable=False, server_default="False"),
         *timestamps(),
     )
     op.execute(
@@ -279,6 +280,6 @@ def downgrade() -> None:
     op.drop_table("notes")
     op.drop_table("todos")
     op.drop_table("profiles")
-    op.drop_table("email_verification")
+    # op.drop_table("email_verification")
     op.drop_table("users")
     op.execute("DROP FUNCTION update_updated_at_column")
