@@ -2,13 +2,12 @@ import datetime
 from typing import Dict, List, Optional, Union
 
 import pytest
+from app.models.todo import TodoCreate, TodoInDB, TodoPublic
+from app.models.user import UserInDB
 from databases.core import Database
 from fastapi import FastAPI, status
 from fastapi.encoders import jsonable_encoder
 from httpx import AsyncClient
-
-from app.models.todo import TodoCreate, TodoInDB, TodoPublic
-from app.models.user import UserInDB
 
 # decorate all test with @pytest.mark.asyncio
 pytestmark = pytest.mark.asyncio
@@ -24,17 +23,13 @@ class TestTodosRoute:
         assert res.status_code != status.HTTP_404_NOT_FOUND
         res = await client.put(app.url_path_for("todos:update-todo-by-id", todo_id=1))
         assert res.status_code != status.HTTP_404_NOT_FOUND
-        res = await client.delete(
-            app.url_path_for("todos:delete-todo-by-id", todo_id=0)
-        )
+        res = await client.delete(app.url_path_for("todos:delete-todo-by-id", todo_id=0))
+        assert res.status_code != status.HTTP_404_NOT_FOUND
+        res = await client.get(app.url_path_for("todo_task:list-all-tasks"))
         assert res.status_code != status.HTTP_404_NOT_FOUND
 
-    async def test_invalid_input_raises_error(
-        self, app: FastAPI, authorized_client: AsyncClient
-    ) -> None:
-        res = await authorized_client.post(
-            app.url_path_for("todos:create-todo"), json={}
-        )
+    async def test_invalid_input_raises_error(self, app: FastAPI, authorized_client: AsyncClient) -> None:
+        res = await authorized_client.post(app.url_path_for("todos:create-todo"), json={})
         assert res.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
@@ -92,12 +87,8 @@ class TestCreateTodo:
 
 
 class TestGetTodo:
-    async def test_get_todo_by_id(
-        self, app: FastAPI, authorized_client: AsyncClient, test_todo: TodoCreate
-    ) -> None:
-        res = await authorized_client.get(
-            app.url_path_for("todos:get-todo-by-id", todo_id=test_todo.id)
-        )
+    async def test_get_todo_by_id(self, app: FastAPI, authorized_client: AsyncClient, test_todo: TodoCreate) -> None:
+        res = await authorized_client.get(app.url_path_for("todos:get-todo-by-id", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_200_OK
         todo = TodoInDB(**res.json())
         assert todo == test_todo
@@ -105,9 +96,7 @@ class TestGetTodo:
     async def test_unauthorized_users_cant_get_access_todos(
         self, app: FastAPI, client: AsyncClient, test_todo: TodoCreate
     ) -> None:
-        res = await client.get(
-            app.url_path_for("todos:get-todo-by-id", todo_id=test_todo.id)
-        )
+        res = await client.get(app.url_path_for("todos:get-todo-by-id", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.parametrize(
@@ -121,9 +110,7 @@ class TestGetTodo:
     async def test_wrong_id_returns_error(
         self, app: FastAPI, authorized_client: AsyncClient, id: int, status_code: int
     ) -> None:
-        res = await authorized_client.get(
-            app.url_path_for("todos:get-todo-by-id", todo_id=id)
-        )
+        res = await authorized_client.get(app.url_path_for("todos:get-todo-by-id", todo_id=id))
         assert res.status_code == status_code
 
     async def test_get_all_todos_return_valid_response(
@@ -164,6 +151,7 @@ class TestUpdateTodo:
             (["notes"], ["new kind of todo list"]),
             (["priority"], ["standard"]),
             (["name", "notes"], ["some more todos", "some extra fake description"]),
+            (["as_task"], [True]),
             (
                 ["duedate", "priority"],
                 [(datetime.date.today() + datetime.timedelta(days=5)), "standard"],
@@ -178,23 +166,15 @@ class TestUpdateTodo:
         attrs_to_change: List[str],
         values: List[str],
     ) -> None:
-        todo_update = {
-            "todo_update": {
-                attrs_to_change[i]: values[i] for i in range(len(attrs_to_change))
-            }
-        }
+        todo_update = {"todo_update": {attrs_to_change[i]: values[i] for i in range(len(attrs_to_change))}}
         res = await authorized_client.put(
             app.url_path_for("todos:update-todo-by-id", todo_id=test_todo.id),
             json=jsonable_encoder(todo_update),
         )
         assert res.status_code == status.HTTP_200_OK
         updated_todo = TodoInDB(**res.json())  # make sure it's the same todo
-        for i in range(
-            len(attrs_to_change)
-        ):  # making sure that any attribute updated changed to the correct value
-            assert getattr(updated_todo, attrs_to_change[i]) != getattr(
-                test_todo, attrs_to_change[i]
-            )
+        for i in range(len(attrs_to_change)):  # making sure that any attribute updated changed to the correct value
+            assert getattr(updated_todo, attrs_to_change[i]) != getattr(test_todo, attrs_to_change[i])
             assert getattr(updated_todo, attrs_to_change[i]) == values[i]
         # making sure no attributes values have changed
         for attr, value in updated_todo.dict().items():
@@ -249,9 +229,7 @@ class TestUpdateTodo:
         status_code: int,
     ) -> None:
         todo_update = {"todo_update": payload}
-        res = await authorized_client.put(
-            app.url_path_for("todos:update-todo-by-id", todo_id=id), json=todo_update
-        )
+        res = await authorized_client.put(app.url_path_for("todos:update-todo-by-id", todo_id=id), json=todo_update)
         assert res.status_code == status_code
 
 
@@ -259,14 +237,10 @@ class TestDeleteTodo:
     async def test_can_delete_todo_successfully(
         self, app: FastAPI, authorized_client: AsyncClient, test_todo: TodoInDB
     ) -> None:
-        res = await authorized_client.delete(
-            app.url_path_for("todos:delete-todo-by-id", todo_id=test_todo.id)
-        )
+        res = await authorized_client.delete(app.url_path_for("todos:delete-todo-by-id", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_200_OK
         # ensuring that todo is removed
-        res = await authorized_client.get(
-            app.url_path_for("todos:get-todo-by-id", todo_id=test_todo.id)
-        )
+        res = await authorized_client.get(app.url_path_for("todos:get-todo-by-id", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_404_NOT_FOUND
 
     async def test_user_cannot_delete_others_todo(
@@ -275,9 +249,7 @@ class TestDeleteTodo:
         authorized_client: AsyncClient,
         test_todos_list: List[TodoInDB],
     ) -> None:
-        res = await authorized_client.delete(
-            app.url_path_for("todos:delete-todo-by-id", todo_id=test_todos_list[0].id)
-        )
+        res = await authorized_client.delete(app.url_path_for("todos:delete-todo-by-id", todo_id=test_todos_list[0].id))
         assert res.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.parametrize(
@@ -297,7 +269,26 @@ class TestDeleteTodo:
         id: int,
         status_code: int,
     ) -> None:
-        res = await authorized_client.delete(
-            app.url_path_for("todos:delete-todo-by-id", todo_id=id)
-        )
+        res = await authorized_client.delete(app.url_path_for("todos:delete-todo-by-id", todo_id=id))
         assert res.status_code == status_code
+
+
+class TestGetTodoTasks:
+    async def test_can_get_all_task(
+        self,
+        app: FastAPI,
+        authorized_client: AsyncClient,
+        test_user: UserInDB,
+        test_todo: TodoInDB,
+        test_todos_list_as_task: List[TodoInDB],
+    ) -> None:
+        res = await authorized_client.get(app.url_path_for("todo_task:list-all-tasks"))
+        assert res.status_code == status.HTTP_200_OK
+        assert isinstance(res.json(), list)
+        assert len(res.json()) > 0
+        todos = [TodoInDB(**todo) for todo in res.json()]
+        assert test_todo not in todos
+        for todo in todos:
+            assert todo.owner != test_user.id
+            assert todo.as_task is True
+        assert all(todo in todos for todo in test_todos_list_as_task)

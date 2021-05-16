@@ -21,12 +21,12 @@ from app.db.repositories.tasks import TasksRepository
 from app.models.task import TaskCreate, TaskInDB, TaskPublic
 from app.models.todo import TodoInDB
 from app.models.user import UserInDB
-from fastapi import APIRouter, Body, Depends, status
+from fastapi import APIRouter, Depends, status
 
 router = APIRouter()
 
 
-# TODO: Do latter: set a task with usename
+# Done: Do latter: set a task with usename
 @router.post(
     "/{username}/set/",
     response_model=TaskPublic,

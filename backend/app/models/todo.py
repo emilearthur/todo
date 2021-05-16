@@ -26,6 +26,7 @@ class TodoBase(CoreModel):
     notes: Optional[str]
     priority: Optional[PriorityType] = "critical"
     duedate: Optional[date]  # consider design maybe you might change it.
+    as_task: Optional[bool] = False
 
 
 class TodoCreate(TodoBase):

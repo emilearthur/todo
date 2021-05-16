@@ -8,19 +8,19 @@ from app.models.user import UserInDB
 from fastapi import HTTPException, status
 
 CREATE_TODO_QUERY = """
-    INSERT INTO todos (name, notes, priority, duedate, owner)
-    VALUES (:name, :notes, :priority, :duedate, :owner)
-    RETURNING id, name, notes, priority, duedate, owner, created_at, updated_at;
+    INSERT INTO todos (name, notes, priority, duedate, owner, as_task)
+    VALUES (:name, :notes, :priority, :duedate, :owner, :as_task)
+    RETURNING id, name, notes, priority, duedate, owner, created_at, updated_at, as_task;
 """
 
 GET_TODO_BY_ID_QUERY = """
-    SELECT id, name, notes, priority, duedate, owner, created_at, updated_at
+    SELECT id, name, notes, priority, duedate, owner, created_at, updated_at, as_task
     from todos
     WHERE id = :id;
 """
 
 GET_ALL_TODOS_QUERY = """
-    SELECT id, name, notes, priority, duedate, created_at, updated_at
+    SELECT id, name, notes, priority, duedate, created_at, updated_at, as_task
     FROM todos
 """
 
@@ -29,9 +29,10 @@ UPDATE_TODO_BY_ID_QUERY = """
     SET name        = :name,
         notes       = :notes,
         priority    = :priority,
-        duedate     = :duedate
+        duedate     = :duedate,
+        as_task     = :as_task
     WHERE id = :id
-    RETURNING id, name, notes, priority, duedate, owner, created_at, updated_at;
+    RETURNING id, name, notes, priority, duedate, owner, created_at, updated_at, as_task;
 """
 
 DELETE_TODO_BY_ID_QUERY = """
@@ -41,9 +42,16 @@ DELETE_TODO_BY_ID_QUERY = """
 """
 
 LIST_ALL_USER_TODOS_QUERY = """
-    SELECT id, name, notes, priority, duedate, owner, created_at, updated_at
+    SELECT id, name, notes, priority, duedate, owner, created_at, updated_at, as_task
     FROM todos
     WHERE owner = :owner;
+"""
+
+LIST_ALL_TODOS_WITH_OFFERS = """
+    SELECT id, name, notes, priority, duedate, owner, created_at, updated_at, as_task
+    FROM todos
+    WHERE owner != :owner
+    AND as_task = TRUE
 """
 
 
@@ -87,3 +95,8 @@ class TodosRepository(BaseRepository):
     async def delete_todo_by_id(self, *, todo: TodoInDB) -> int:
         """Delete todo via todo id."""
         return await self.db.execute(query=DELETE_TODO_BY_ID_QUERY, values={"id": todo.id})
+
+    async def list_all_todo_for_task(self, *, requesting_user: UserInDB) -> List[TodoInDB]:
+        """Get all todo for task. Exclude user's todos snce user cannot accept their own task."""
+        todos = await self.db.fetch_all(query=LIST_ALL_TODOS_WITH_OFFERS, values={"owner": requesting_user.id})
+        return [TodoInDB(**todo) for todo in todos]
