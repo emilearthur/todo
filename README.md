@@ -54,3 +54,5 @@ To view API documentation enter ```http://localhost:8000/docs``` in your browser
 * [Alembic](https://alembic.sqlalchemy.org/en/latest/) is a lightweight database migration tool for usage with SQLAlchemy DB toolkit for Python.
 * [PyTest](https://docs.pytest.org/en/6.2.x/) is a framework that makes building simple and scalable tests easy.
 * uvicorn
+*Postgres DB - Main Database.
+* Redis - For Email Verfication Implementation.

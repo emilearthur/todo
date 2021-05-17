@@ -15,6 +15,7 @@ class TaskStatus(str, Enum):
     rejected = "rejected"
     pending = "pending"
     cancelled = "cancelled"
+    completed = "completed"
 
 
 class TaskBase(CoreModel):

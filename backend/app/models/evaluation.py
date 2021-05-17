@@ -11,7 +11,7 @@ from pydantic import confloat, conint
 class EvaluationBase(CoreModel):
     """All common characteristics of evaluation."""
 
-    now_show: bool = False
+    no_show: bool = False
     headline: Optional[str]
     comment: Optional[str]
     professionalism: Optional[conint(ge=0, le=5)]
@@ -35,7 +35,7 @@ class EvaluationUpdate(EvaluationBase):
 class EvaluationInDB(DateTimeModelMixin, EvaluationBase):
     """Model for data in DB."""
 
-    taker_id: int
+    tasktaker_id: int
     todo_id: int
 
 

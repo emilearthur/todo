@@ -224,7 +224,7 @@ def create_task_taker_evaluations_table() -> None:
         - overall - what's the rating for the task executed?
     """
     op.create_table(
-        "task_to_taker_evalations",
+        "task_to_tasktaker_evalations",
         sa.Column(
             "todo_id",
             sa.Integer,
@@ -233,7 +233,7 @@ def create_task_taker_evaluations_table() -> None:
             index=True,
         ),
         sa.Column(
-            "taker_id",
+            "tasktaker_id",
             sa.Integer,
             sa.ForeignKey("users.id", ondelete="SET NULL"),
             nullable=False,
@@ -243,18 +243,19 @@ def create_task_taker_evaluations_table() -> None:
         sa.Column("headline", sa.Text, nullable=True),
         sa.Column("comment", sa.Text, nullable=True),
         sa.Column("professionalism", sa.Integer, nullable=True),
-        sa.Column("professionalism", sa.Integer, nullable=True),
         sa.Column("completeness", sa.Integer, nullable=True),
         sa.Column("efficiency", sa.Integer, nullable=True),
         sa.Column("overall_rating", sa.Integer, nullable=False),
         *timestamps(),
     )
-    op.create_primary_key("pk_task_to_taker_evalations", "task_to_taker_evalations", ["todo_id", "taker_id"])
+    op.create_primary_key(
+        "pk_task_to_tasktaker_evalations", "task_to_tasktaker_evalations", ["todo_id", "tasktaker_id"]
+    )
     op.execute(
         """
         CREATE TRIGGER update_task_to_taker_evalations_modtime
             BEFORE UPDATE
-            ON task_to_taker_evalations
+            ON task_to_tasktaker_evalations
             FOR EACH ROW
         EXECUTE PROCEDURE update_updated_at_column()
         """
@@ -274,7 +275,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_table("task_to_taker_evalations")
+    op.drop_table("task_to_tasktaker_evalations")
     op.drop_table("user_task_for_todos")
     op.drop_table("comments")
     op.drop_table("notes")

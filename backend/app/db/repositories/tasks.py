@@ -62,6 +62,12 @@ RESCIND_OFFER_FOR_TASK_QUERY = """
     AND user_id = :user_id
 """
 
+MARK_TASK_COMPLETE_QUERY = """
+    UPDATE user_task_for_todos
+    SET status = 'completed'
+    WHERE todo_id = :todo_id AND user_id = :user_id;
+"""
+
 
 class TasksRepository(BaseRepository):
     """class for tasks."""
@@ -132,4 +138,10 @@ class TasksRepository(BaseRepository):
         return await self.db.execute(
             query=RESCIND_OFFER_FOR_TASK_QUERY,
             values={"todo_id": task.todo_id, "user_id": task.user_id},
+        )
+
+    async def mark_task_completed(self, *, todo: TodoInDB, tasktaker: UserInDB) -> TaskInDB:
+        """Check task as complete."""
+        return await self.db.fetch_one(
+            query=MARK_TASK_COMPLETE_QUERY, values={"todo_id": todo.id, "user_id": tasktaker.id}
         )

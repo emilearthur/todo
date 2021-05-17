@@ -13,8 +13,6 @@ from fastapi.encoders import jsonable_encoder
 from httpx import AsyncClient
 from redis.client import Redis
 
-# from databases import Database
-
 
 pytestmark = pytest.mark.asyncio
 
@@ -28,7 +26,7 @@ class TestCommentRoute:
         client: AsyncClient,
     ) -> None:
         """Test for routes."""
-        res = await client.post(app.url_path_for("comments:create-comment"), json={})
+        res = await client.post(app.url_path_for("comments:create-comment-todo"), json={})
         assert res.status_code != status.HTTP_404_NOT_FOUND
         res = await client.put(app.url_path_for("comments:update-comment-by-id", comment_id=1))
         assert res.status_code != status.HTTP_404_NOT_FOUND
@@ -37,7 +35,7 @@ class TestCommentRoute:
 
     async def test_invalid_input_raises_error(self, app: FastAPI, authorized_client: AsyncClient) -> None:
         """Test invalid comment returns 422."""
-        res = await authorized_client.post(app.url_path_for("comments:create-comment"), json={})
+        res = await authorized_client.post(app.url_path_for("comments:create-comment-todo"), json={})
         assert res.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
@@ -49,11 +47,12 @@ class TestCreateComment:
         app: FastAPI,
         authorized_client: AsyncClient,
         test_user: UserInDB,
-        new_comment: CommentInDB,
+        test_todo: TodoInDB,
     ) -> None:
         """Check comments with valid inputs."""
+        new_comment = CommentCreate(body="test comments", todo_id=test_todo.id)
         res = await authorized_client.post(
-            app.url_path_for("comments:create-comment"),
+            app.url_path_for("comments:create-comment-todo"),
             json={"new_comment": jsonable_encoder(new_comment.dict())},
         )
         assert res.status_code == status.HTTP_201_CREATED
@@ -61,6 +60,21 @@ class TestCreateComment:
         assert created_comment.body == new_comment.body
         assert created_comment.todo_id == new_comment.todo_id
         assert created_comment.comment_owner == test_user.id
+
+    async def test_valid_input_not_create_comment_on_other_todo(
+        self,
+        app: FastAPI,
+        authorized_client: AsyncClient,
+        test_user: UserInDB,
+        test_todo_2: TodoInDB,
+    ) -> None:
+        """Check comments with valid inputs."""
+        new_comment = CommentCreate(body="test comments", todo_id=test_todo_2.id)
+        res = await authorized_client.post(
+            app.url_path_for("comments:create-comment-todo"),
+            json={"new_comment": jsonable_encoder(new_comment.dict())},
+        )
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
 
     async def test_comment_non_existing_todo(
         self,
@@ -70,7 +84,7 @@ class TestCreateComment:
     ) -> None:
         new_comment = CommentCreate(body="test comments", todo_id=5555)
         res = await authorized_client.post(
-            app.url_path_for("comments:create-comment"),
+            app.url_path_for("comments:create-comment-todo"),
             json={"new_comment": jsonable_encoder(new_comment.dict())},
         )
         assert res.status_code == status.HTTP_404_NOT_FOUND
@@ -79,7 +93,7 @@ class TestCreateComment:
         self, app: FastAPI, client: AsyncClient, new_comment: CommentInDB
     ) -> None:
         res = await client.post(
-            app.url_path_for("comments:create-comment"),
+            app.url_path_for("comments:create-comment-todo"),
             json={"new_comment": jsonable_encoder(new_comment.dict())},
         )
         assert res.status_code == status.HTTP_401_UNAUTHORIZED
@@ -103,7 +117,7 @@ class TestCreateComment:
         status_code: int,
     ) -> None:
         res = await authorized_client.post(
-            app.url_path_for("comments:create-comment"),
+            app.url_path_for("comments:create-comment-todo"),
             json={"new_comment": jsonable_encoder(invalid_payload)},
         )
         assert res.status_code == status_code
@@ -282,25 +296,3 @@ class TestGetComment:
         assert len(res.json()) > 0
         comments = [CommentInDB(**comment) for comment in res.json()]
         assert test_comment in comments
-
-
-class TestOtherTest:
-    """"Test a test via vim"""
-
-    async def test_some_test(
-        self,
-        app: FastAPI,
-        authorized_client: AsyncClient,
-        test_todo: TodoInDB,
-        test_comment: CommentInDB,
-    ):
-        pass
-
-    async def test_more_test(
-        self,
-        app: FastAPI,
-        authorized_client: AsyncClient,
-        test_todo: TodoInDB,
-        test_comment: CommentInDB,
-    ):
-        pass
