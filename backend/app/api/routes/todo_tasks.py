@@ -1,5 +1,4 @@
-"""API router to get all todos are offered as task.
-Anyone can view them."""
+"""API router to get all todos are offered as task. Anyone can view them."""
 
 from typing import List
 

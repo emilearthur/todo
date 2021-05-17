@@ -188,10 +188,10 @@ class UsersRepository(BaseRepository):
         #     return requesting_user.email
 
         # # return requesting_user.email
-        code_record = self.r_db.get(requesting_user.email)
+        code_record = await self.r_db.get(requesting_user.email)
         if code_record is None:
             generated_code = generated_code = self.generate_otp()
-            self.r_db.setex(requesting_user.email, timedelta(seconds=300), value=generated_code)
+            await self.r_db.setex(requesting_user.email, timedelta(seconds=300).seconds, value=generated_code)
             try:
                 await self.email_service.send_email_gmail(
                     emails=requesting_user.email.split(),
@@ -213,7 +213,7 @@ class UsersRepository(BaseRepository):
         #     return None
 
         # code_record = self.r_db.get(requesting_user.email).decode("utf-8")
-        code_record = self.r_db.get(requesting_user.email)
+        code_record = await self.r_db.get(requesting_user.email)
         if not code_record:
             return None
         if not code_record.decode("utf-8") == verification_code:

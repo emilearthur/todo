@@ -1,3 +1,5 @@
+"""Settting up configs."""
+
 from databases import DatabaseURL
 from starlette.config import Config
 from starlette.datastructures import Secret

@@ -91,6 +91,19 @@ async def test_todo(db: Database, r_db: Redis, test_user: UserInDB) -> TodoInDB:
 
 
 @pytest.fixture
+async def test_todo_2(db: Database, r_db: Redis, test_user2: UserInDB) -> TodoInDB:
+    todo_repo = TodosRepository(db, r_db)
+    new_todo = TodoCreate(
+        name="test todo",
+        notes="test notes",
+        priority="critical",
+        duedate=datetime.date.today(),
+        as_task=False,
+    )
+    return await todo_repo.create_todo(new_todo=new_todo, requesting_user=test_user2)
+
+
+@pytest.fixture
 async def test_todo_astask(db: Database, r_db: Redis, test_user: UserInDB) -> TodoInDB:
     todo_repo = TodosRepository(db, r_db)
     new_todo = TodoCreate(
@@ -109,6 +122,11 @@ def new_comment(test_todo: TodoInDB):
 
 
 @pytest.fixture
+def new_comment2(test_todo_2: TodoInDB):
+    return CommentCreate(body="test comments", todo_id=test_todo_2.id)
+
+
+@pytest.fixture
 async def test_comment(db: Database, r_db: Redis, test_user: UserInDB, test_todo: TodoInDB) -> CommentInDB:
     comments_repo = CommentsRepository(db, r_db)
     new_comment = CommentCreate(body="test comments", todo_id=test_todo.id)
@@ -116,10 +134,10 @@ async def test_comment(db: Database, r_db: Redis, test_user: UserInDB, test_todo
 
 
 @pytest.fixture
-async def test_comment_2(db: Database, r_db: Redis, test_user2: UserInDB, test_todo: TodoInDB) -> CommentInDB:
+async def test_comment_2(db: Database, r_db: Redis, test_user: UserInDB, test_todo: TodoInDB) -> CommentInDB:
     comments_repo = CommentsRepository(db, r_db)
     new_comment = CommentCreate(body="test comments", todo_id=test_todo.id)
-    return await comments_repo.create_comment(new_comment=new_comment, requesting_user=test_user2)
+    return await comments_repo.create_comment(new_comment=new_comment, requesting_user=test_user)
 
 
 # @pytest.fixture

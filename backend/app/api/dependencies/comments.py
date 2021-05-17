@@ -37,7 +37,8 @@ def check_comment_todo_permission():
     pass
 
 
-def check_comment_task_permission(current_user: UserInDB = Depends(get_current_active_user),
-                                  ):
+def check_comment_task_permission(
+    current_user: UserInDB = Depends(get_current_active_user),
+):
     """Permission for task owner and task taker to comment on a task."""
     pass
