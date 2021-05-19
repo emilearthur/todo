@@ -19,9 +19,9 @@ async def connect_to_db(app: FastAPI) -> None:
         await database.connect()
         app.state._db = database
     except Exception as e:
-        logger.warn("--- DB CONNECTION ERROR ---")
-        logger.warn(e)
-        logger.warn("--- DB CONNECTION ERROR ---")
+        logger.warning("--- DB CONNECTION ERROR ---")
+        logger.warning(e)
+        logger.warning("--- DB CONNECTION ERROR ---")
 
 
 async def close_db_connection(app: FastAPI) -> None:
@@ -29,9 +29,9 @@ async def close_db_connection(app: FastAPI) -> None:
     try:
         await app.state._db.disconnect()
     except Exception as e:
-        logger.warn("--- DB DISCONNECT ERROR ---")
-        logger.warn(e)
-        logger.warn("--- DB DISCONNECT ERROR ---")
+        logger.warning("--- DB DISCONNECT ERROR ---")
+        logger.warning(e)
+        logger.warning("--- DB DISCONNECT ERROR ---")
 
 
 async def connect_to_redis(app: FastAPI) -> None:
@@ -43,9 +43,9 @@ async def connect_to_redis(app: FastAPI) -> None:
         # client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=str(REDIS_PASSWORD), db=0, socket_timeout=10)
         app.state._redis = client
     except Exception as e:
-        logger.warn("--- Redis Authenication Error")
-        logger.warn(e)
-        logger.warn("--- Redis Authenication Error")
+        logger.warning("--- Redis Authenication Error")
+        logger.warning(e)
+        logger.warning("--- Redis Authenication Error")
 
 
 async def close_redis_connection(app: FastAPI) -> None:
