@@ -69,7 +69,7 @@ class CommentsRepository(BaseRepository):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="todo cannot be found thus cannot comment"
             )
-        if todo_exist.owner != requesting_user.id:
+        if todo_exist.owner.id != requesting_user.id:
             print(todo_exist.owner, requesting_user.id)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="only todo owner can comment.")
 

@@ -5,7 +5,7 @@ from typing import List
 from app.api.dependencies.auth import get_current_active_user
 from app.api.dependencies.database import get_repository
 from app.api.dependencies.tasks import get_offer_for_task_from_user_by_path
-from app.api.dependencies.todos import get_todo_by_id_from_path
+from app.api.dependencies.todos import get_todo_by_id_from_path, user_owns_todo
 from app.api.dependencies.users import get_user_by_username_from_path
 from app.db.repositories.evaluations import EvaluationsRepository
 from app.models.evaluation import EvaluationInDB
@@ -23,7 +23,9 @@ async def check_evaluation_create_permissions(
     evals_repo: EvaluationsRepository = Depends(get_repository(EvaluationsRepository)),
 ) -> None:
     """Check user ability to create permisssions."""
-    if todo.owner != current_user.id:  # check that only owners of a todo can leave evaluations for that task
+    if not user_owns_todo(
+        user=current_user, todo=todo
+    ):  # check that only owners of a todo can leave evaluations for that task
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Users are unable to leave evaluations for todo task they don't own.",
