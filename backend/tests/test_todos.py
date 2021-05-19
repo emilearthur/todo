@@ -1,3 +1,5 @@
+"""Testing Todo Enpoint."""
+
 import datetime
 from typing import Dict, List, Optional, Union
 
@@ -90,8 +92,8 @@ class TestGetTodo:
     async def test_get_todo_by_id(self, app: FastAPI, authorized_client: AsyncClient, test_todo: TodoCreate) -> None:
         res = await authorized_client.get(app.url_path_for("todos:get-todo-by-id", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_200_OK
-        todo = TodoInDB(**res.json())
-        assert todo == test_todo
+        todo = TodoPublic(**res.json()).dict(exclude={"owner"})
+        assert todo == test_todo.dict(exclude={"owner"})
 
     async def test_unauthorized_users_cant_get_access_todos(
         self, app: FastAPI, client: AsyncClient, test_todo: TodoCreate

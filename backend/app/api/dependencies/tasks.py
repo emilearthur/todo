@@ -4,7 +4,7 @@ from typing import List
 
 from app.api.dependencies.auth import get_current_active_user
 from app.api.dependencies.database import get_repository
-from app.api.dependencies.todos import get_todo_by_id_from_path
+from app.api.dependencies.todos import get_todo_by_id_from_path, user_owns_todo
 from app.api.dependencies.users import get_user_by_username_from_path
 from app.db.repositories.tasks import TasksRepository
 from app.models.task import TaskInDB
@@ -19,7 +19,7 @@ async def check_task_create_permissions(
     tasks_repo: TasksRepository = Depends(get_repository(TasksRepository)),
 ) -> None:
     """Permission for user can create task."""
-    if todo.owner == current_user.id:
+    if user_owns_todo(user=current_user, todo=todo):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Users are unable to create tasks for todo jobs they own"
         )
@@ -69,7 +69,7 @@ async def check_offer_list_permissions(
     current_user: UserInDB = Depends(get_current_active_user), todo: TodoInDB = Depends(get_todo_by_id_from_path)
 ) -> None:
     """Permission for todo owner to view list of offers for thier tasks."""
-    if todo.owner != current_user.id:
+    if not user_owns_todo(user=current_user, todo=todo):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unable to access offers.")
 
 
@@ -79,7 +79,7 @@ async def check_task_get_permissions(
     task: TaskInDB = Depends(get_offer_for_task_from_user_by_path),
 ) -> None:
     """Perission to access task."""
-    if todo.owner != current_user.id and task.user_id != current_user.id:
+    if not user_owns_todo(user=current_user, todo=todo) and task.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unable to access task")
 
 
@@ -90,7 +90,7 @@ def check_task_offer_acceptance_permissions(
     existing_offer: List[TaskInDB] = Depends(list_offers_for_task_by_id_from_path),
 ) -> None:
     """Check if tasks can be accepted."""
-    if todo.owner != current_user.id:
+    if not user_owns_todo(user=current_user, todo=todo):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Only the onwer of the todo may accept offers."
         )

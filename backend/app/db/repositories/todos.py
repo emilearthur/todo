@@ -1,11 +1,14 @@
 """All functions to handle crud todos."""
 
-from typing import List
+from typing import List, Union
 
 from app.db.repositories.base import BaseRepository
-from app.models.todo import TodoCreate, TodoInDB, TodoUpdate
+from app.db.repositories.users import UsersRepository
+from app.models.todo import TodoCreate, TodoInDB, TodoPublic, TodoUpdate
 from app.models.user import UserInDB
+from databases import Database
 from fastapi import HTTPException, status
+from redis.client import Redis
 
 CREATE_TODO_QUERY = """
     INSERT INTO todos (name, notes, priority, duedate, owner, as_task)
@@ -58,17 +61,26 @@ LIST_ALL_TODOS_WITH_OFFERS = """
 class TodosRepository(BaseRepository):
     """All db actions associated with the Todos resources."""
 
+    def __init__(self, db: Database, r_db: Redis) -> None:
+        """Initilizing database, redis and users_repository."""
+        super().__init__(db, r_db)
+        self.users_repo = UsersRepository(db, r_db)
+
     async def create_todo(self, *, new_todo: TodoCreate, requesting_user: UserInDB) -> TodoInDB:
         """Create todo."""
         todo = await self.db.fetch_one(query=CREATE_TODO_QUERY, values={**new_todo.dict(), "owner": requesting_user.id})
         return TodoInDB(**todo)
 
-    async def get_todo_by_id(self, *, id: int, requesting_user: UserInDB) -> TodoInDB:
+    async def get_todo_by_id(
+        self, *, id: int, requesting_user: UserInDB, populate: bool = True
+    ) -> Union[TodoInDB, TodoPublic]:
         """Get todo."""
-        todo = await self.db.fetch_one(query=GET_TODO_BY_ID_QUERY, values={"id": id})
-        if not todo:
-            return None
-        return TodoInDB(**todo)
+        todo_record = await self.db.fetch_one(query=GET_TODO_BY_ID_QUERY, values={"id": id})
+        if todo_record:
+            todo = TodoInDB(**todo_record)
+            if populate:
+                return await self.populate_todo(todo=todo, requesting_user=requesting_user)
+            return todo
 
     async def get_all_todos(self) -> List[TodoInDB]:
         """Get all todo."""
@@ -100,3 +112,10 @@ class TodosRepository(BaseRepository):
         """Get all todo for task. Exclude user's todos snce user cannot accept their own task."""
         todos = await self.db.fetch_all(query=LIST_ALL_TODOS_WITH_OFFERS, values={"owner": requesting_user.id})
         return [TodoInDB(**todo) for todo in todos]
+
+    async def populate_todo(self, *, todo: TodoInDB, requesting_user: UserInDB = None) -> TodoPublic:
+        """pass."""
+        return TodoPublic(
+            **todo.dict(exclude={"owner"}),
+            owner=await self.users_repo.get_user_by_id(user_id=todo.owner),
+        )
