@@ -1,3 +1,4 @@
+"""Initailise services."""
 from app.services.authentication import AuthService
 from app.services.email import EmailService
 

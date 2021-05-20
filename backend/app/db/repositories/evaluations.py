@@ -101,7 +101,7 @@ GET_TASKTAKER_AGGREGATE_RATINGS_QUERY = """
 
 
 class EvaluationsRepository(BaseRepository):
-    """class for evaluations."""
+    """All db actions associated with the Evaluation resources."""
 
     def __init__(self, db: Database, r_db: Redis) -> None:
         """Initialize db and r_db and tasksrepository."""

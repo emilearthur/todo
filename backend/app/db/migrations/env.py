@@ -1,3 +1,5 @@
+"""DB migration environment."""
+
 import logging
 import os
 import pathlib
@@ -23,7 +25,7 @@ logger = logging.getLogger("alembic.env")
 
 
 def run_migrations_online() -> None:
-    """ Run migrations in 'online' mode """
+    """Run migrations in 'online' mode."""
     DB_URL = f"{DATABASE_URL}_test" if os.environ.get("TESTING") else str(DATABASE_URL)
     # handle testing config for migrations
     if os.environ.get("TESTING"):
@@ -41,7 +43,8 @@ def run_migrations_online() -> None:
         connectable = engine_from_config(
             config.get_section(config.config_ini_section),
             prefix="sqlalchemy.",
-            poolclass=pool.NullPool,)
+            poolclass=pool.NullPool,
+        )
     with connectable.connect() as connection:
         alembic.context.configure(connection=connection, target_metadata=None)
         with alembic.context.begin_transaction():
@@ -49,7 +52,7 @@ def run_migrations_online() -> None:
 
 
 def run_migrations_offline() -> None:
-    """ Run migrations in 'offline' mode """
+    """Run migrations in 'offline' mode."""
     if os.environ.get("TESTING"):
         raise DatabaseError("Running testing migrations offline currently not permitted.")
 

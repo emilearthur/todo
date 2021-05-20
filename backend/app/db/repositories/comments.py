@@ -54,7 +54,7 @@ DELETE_COMMENT_BY_ID_QUERY = """
 
 
 class CommentsRepository(BaseRepository):
-    """class for comments."""
+    """All db actions associated with the Comments resources."""
 
     def __init__(self, db: Database, r_db: Redis) -> None:
         """Initialize db to check todos."""

@@ -38,7 +38,7 @@ UPDATE_PROFILE_QUERY = """
 
 
 class ProfilesRepository(BaseRepository):
-    """class for profile."""
+    """All db actions associated with the Profile resources."""
 
     async def create_profile_for_user(self, *, profile_create: ProfileCreate) -> ProfileInDB:
         """Create profile for user."""
@@ -62,7 +62,8 @@ class ProfilesRepository(BaseRepository):
         """Update user proile."""
         profile = await self.get_profile_by_user_id(user_id=requesting_user.id)
         update_params = profile.copy(update=profile_update.dict(exclude_unset=True))
-        updated_profile = await self.db.fetch_one(query=UPDATE_PROFILE_QUERY,
-                                                  values=update_params.dict(exclude={"id", "created_at", "updated_at",
-                                                                            "username", "email"}))
+        updated_profile = await self.db.fetch_one(
+            query=UPDATE_PROFILE_QUERY,
+            values=update_params.dict(exclude={"id", "created_at", "updated_at", "username", "email"}),
+        )
         return ProfileInDB(**updated_profile)

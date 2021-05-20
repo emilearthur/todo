@@ -13,7 +13,6 @@ from fastapi.encoders import jsonable_encoder
 from httpx import AsyncClient
 from redis.client import Redis
 
-
 pytestmark = pytest.mark.asyncio
 
 
@@ -82,6 +81,7 @@ class TestCreateComment:
         authorized_client: AsyncClient,
         test_user: UserInDB,
     ) -> None:
+        """Test non existing todos cannot be commented."""
         new_comment = CommentCreate(body="test comments", todo_id=5555)
         res = await authorized_client.post(
             app.url_path_for("comments:create-comment-todo"),
@@ -92,6 +92,7 @@ class TestCreateComment:
     async def test_unauthorized_user_unable_to_create_comment(
         self, app: FastAPI, client: AsyncClient, new_comment: CommentInDB
     ) -> None:
+        """Test unauthorized users cannot comment."""
         res = await client.post(
             app.url_path_for("comments:create-comment-todo"),
             json={"new_comment": jsonable_encoder(new_comment.dict())},
@@ -116,6 +117,7 @@ class TestCreateComment:
         test_comment: CommentInDB,
         status_code: int,
     ) -> None:
+        """Testing error raised when invalid input is given for comments."""
         res = await authorized_client.post(
             app.url_path_for("comments:create-comment-todo"),
             json={"new_comment": jsonable_encoder(invalid_payload)},
@@ -138,6 +140,7 @@ class TestUpdateComment:
         attrs_to_change: List[str],
         values: List[str],
     ) -> None:
+        """Testing comments update."""
         comments_update = {"comment_update": {attrs_to_change[i]: values[i] for i in range(len(attrs_to_change))}}
         res = await authorized_client.put(
             app.url_path_for("comments:update-comment-by-id", comment_id=test_comment.id),
@@ -152,19 +155,20 @@ class TestUpdateComment:
             if attr not in attrs_to_change and attr != "updated_at":
                 assert getattr(test_comment, attr) == value
 
-    async def test_user_gets_error_if_updating_other_users_todo(
+    async def test_user_gets_error_if_updating_other_users_comments(
         self,
         app: FastAPI,
         authorized_client: AsyncClient,
         test_comment_list: List[CommentInDB],
     ) -> None:
+        """Test error raise when updating another comments."""
         res = await authorized_client.put(
             app.url_path_for("comments:update-comment-by-id", comment_id=test_comment_list[0].id),
             json=jsonable_encoder({"comment_update": {"body": "new test comments here"}}),
         )
         assert res.status_code == status.HTTP_403_FORBIDDEN
 
-    async def test_user_cant_change_ownership_of_todo(
+    async def test_user_cant_change_ownership_of_comment(
         self,
         app: FastAPI,
         authorized_client: AsyncClient,
@@ -172,6 +176,7 @@ class TestUpdateComment:
         test_user: UserInDB,
         test_user2: UserInDB,
     ) -> None:
+        """Test comment ownership cannot be changed."""
         res = await authorized_client.put(
             app.url_path_for("comments:update-comment-by-id", comment_id=test_comment.id),
             json=jsonable_encoder({"todo_update": {"comment_owner": test_user2.id}}),
@@ -195,6 +200,7 @@ class TestUpdateComment:
         payload: Dict[str, Optional[str]],
         status_code: int,
     ) -> None:
+        """Test invalid comment throws an error."""
         comment_update = {"comment_update": payload}
         res = await authorized_client.put(
             app.url_path_for("comments:update-comment-by-id", comment_id=id),
@@ -215,6 +221,7 @@ class TestDeleteComment:
         db: Database,
         r_db: Redis,
     ) -> None:
+        """Test comments can be deleted successfully."""
         comments_repo = CommentsRepository(db, r_db)
 
         res = await authorized_client.delete(
@@ -238,6 +245,7 @@ class TestDeleteComment:
         authorized_client: AsyncClient,
         test_comment_list: List[CommentInDB],
     ) -> None:
+        """Test user cannot deleted anothers comments."""
         res = await authorized_client.delete(
             app.url_path_for("comments:delete-comment-by-id", comment_id=test_comment_list[0].id)
         )
@@ -260,6 +268,7 @@ class TestDeleteComment:
         id: int,
         status_code: int,
     ) -> None:
+        """Test deleting not existing comment of invalid inputs throws errors."""
         res = await authorized_client.delete(app.url_path_for("comments:delete-comment-by-id", comment_id=id))
         assert res.status_code == status_code
 
@@ -275,6 +284,7 @@ class TestGetComment:
         test_comment: CommentInDB,
         test_comment_2: CommentInDB,
     ) -> None:
+        """Test all todos comments can be requested."""
         res = await authorized_client.get(app.url_path_for("todos:list-all-todo-comments", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_200_OK
         assert isinstance(res.json(), list)
@@ -290,6 +300,7 @@ class TestGetComment:
         test_todo: TodoInDB,
         test_comment: CommentInDB,
     ) -> None:
+        """Test all users comments can be requested."""
         res = await authorized_client.get(app.url_path_for("users:get-user-comments"))
         assert res.status_code == status.HTTP_200_OK
         assert isinstance(res.json(), list)
