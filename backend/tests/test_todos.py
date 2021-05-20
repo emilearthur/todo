@@ -16,7 +16,10 @@ pytestmark = pytest.mark.asyncio
 
 
 class TestTodosRoute:
+    """Testing Routes."""
+
     async def test_routes_exist(self, app: FastAPI, client: AsyncClient) -> None:
+        """Test if routes exists."""
         res = await client.post(app.url_path_for("todos:create-todo"), json={})
         assert res.status_code != status.HTTP_404_NOT_FOUND
         res = await client.get(app.url_path_for("todos:get-todo-by-id", todo_id=1))
@@ -31,11 +34,14 @@ class TestTodosRoute:
         assert res.status_code != status.HTTP_404_NOT_FOUND
 
     async def test_invalid_input_raises_error(self, app: FastAPI, authorized_client: AsyncClient) -> None:
+        """Test invalid input to route raises error 422."""
         res = await authorized_client.post(app.url_path_for("todos:create-todo"), json={})
         assert res.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 class TestCreateTodo:
+    """Test Create todo route."""
+
     async def test_valid_input_create_todo(
         self,
         app: FastAPI,
@@ -43,6 +49,7 @@ class TestCreateTodo:
         test_user: UserInDB,
         new_todo: TodoCreate,
     ) -> None:
+        """Test valid input creates todo."""
         res = await authorized_client.post(
             app.url_path_for("todos:create-todo"),
             json={"new_todo": jsonable_encoder(new_todo.dict())},
@@ -57,6 +64,7 @@ class TestCreateTodo:
     async def test_unauthorized_user_unable_to_create_todo(
         self, app: FastAPI, client: AsyncClient, new_todo: TodoCreate
     ) -> None:
+        """Test unauthorized user can't create a todo."""
         res = await client.post(
             app.url_path_for("todos:create-todo"),
             json={"new_todo": jsonable_encoder(new_todo.dict())},
@@ -81,6 +89,7 @@ class TestCreateTodo:
         test_todo: TodoInDB,
         status_code: int,
     ) -> None:
+        """Test invalid inputs raises error."""
         res = await authorized_client.post(
             app.url_path_for("todos:create-todo"),
             json={"new_todo": jsonable_encoder(invalid_payload)},
@@ -89,7 +98,10 @@ class TestCreateTodo:
 
 
 class TestGetTodo:
+    """Test Get todo route."""
+
     async def test_get_todo_by_id(self, app: FastAPI, authorized_client: AsyncClient, test_todo: TodoCreate) -> None:
+        """Test authorized client can get todo by id."""
         res = await authorized_client.get(app.url_path_for("todos:get-todo-by-id", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_200_OK
         todo = TodoPublic(**res.json()).dict(exclude={"owner"})
@@ -98,6 +110,7 @@ class TestGetTodo:
     async def test_unauthorized_users_cant_get_access_todos(
         self, app: FastAPI, client: AsyncClient, test_todo: TodoCreate
     ) -> None:
+        """Test unauthorized client can not get todo by id."""
         res = await client.get(app.url_path_for("todos:get-todo-by-id", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -112,12 +125,14 @@ class TestGetTodo:
     async def test_wrong_id_returns_error(
         self, app: FastAPI, authorized_client: AsyncClient, id: int, status_code: int
     ) -> None:
+        """Test authorized client error when wrnong id is entered."""
         res = await authorized_client.get(app.url_path_for("todos:get-todo-by-id", todo_id=id))
         assert res.status_code == status_code
 
     async def test_get_all_todos_return_valid_response(
         self, app: FastAPI, authorized_client: AsyncClient, test_todo: TodoInDB
     ) -> None:
+        """Test all todos are return to client."""
         res = await authorized_client.get(app.url_path_for("todos:list-all-user-todos"))
         assert res.status_code == status.HTTP_200_OK
         assert isinstance(res.json(), list)
@@ -134,6 +149,7 @@ class TestGetTodo:
         test_todo: TodoInDB,
         test_todos_list: List[TodoInDB],
     ) -> None:
+        """Test only owned todo are returned to client."""
         res = await authorized_client.get(app.url_path_for("todos:list-all-user-todos"))
         assert res.status_code == status.HTTP_200_OK
         assert isinstance(res.json(), list)
@@ -146,6 +162,8 @@ class TestGetTodo:
 
 
 class TestUpdateTodo:
+    """Testing update todo endpoint."""
+
     @pytest.mark.parametrize(
         "attrs_to_change, values",
         (
@@ -168,6 +186,7 @@ class TestUpdateTodo:
         attrs_to_change: List[str],
         values: List[str],
     ) -> None:
+        """Test updated todo is successful with valid inputs."""
         todo_update = {"todo_update": {attrs_to_change[i]: values[i] for i in range(len(attrs_to_change))}}
         res = await authorized_client.put(
             app.url_path_for("todos:update-todo-by-id", todo_id=test_todo.id),
@@ -189,6 +208,7 @@ class TestUpdateTodo:
         authorized_client: AsyncClient,
         test_todos_list: List[TodoInDB],
     ) -> None:
+        """Test error if todo updated does not belong to owner."""
         res = await authorized_client.put(
             app.url_path_for("todos:update-todo-by-id", todo_id=test_todos_list[0].id),
             json=jsonable_encoder({"todo_update": {"priority": "standard"}}),
@@ -203,6 +223,7 @@ class TestUpdateTodo:
         test_user: UserInDB,
         test_user2: UserInDB,
     ) -> None:
+        """Test ownership of todo cant be changed."""
         res = await authorized_client.put(
             app.url_path_for("todos:update-todo-by-id", todo_id=test_todo.id),
             json=jsonable_encoder({"todo_update": {"owner": test_user2.id}}),
@@ -230,15 +251,19 @@ class TestUpdateTodo:
         payload: Dict[str, Optional[str]],
         status_code: int,
     ) -> None:
+        """Test updating to do with invalid input return an error."""
         todo_update = {"todo_update": payload}
         res = await authorized_client.put(app.url_path_for("todos:update-todo-by-id", todo_id=id), json=todo_update)
         assert res.status_code == status_code
 
 
 class TestDeleteTodo:
+    """Testing delete todo endpoint."""
+
     async def test_can_delete_todo_successfully(
         self, app: FastAPI, authorized_client: AsyncClient, test_todo: TodoInDB
     ) -> None:
+        """Testing existing todo can be deleted successfully."""
         res = await authorized_client.delete(app.url_path_for("todos:delete-todo-by-id", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_200_OK
         # ensuring that todo is removed
@@ -251,6 +276,7 @@ class TestDeleteTodo:
         authorized_client: AsyncClient,
         test_todos_list: List[TodoInDB],
     ) -> None:
+        """Tesing users cannot deleted another user's todo."""
         res = await authorized_client.delete(app.url_path_for("todos:delete-todo-by-id", todo_id=test_todos_list[0].id))
         assert res.status_code == status.HTTP_403_FORBIDDEN
 
@@ -271,11 +297,14 @@ class TestDeleteTodo:
         id: int,
         status_code: int,
     ) -> None:
+        """Testing invalid input to todo delete endpoint throws an error."""
         res = await authorized_client.delete(app.url_path_for("todos:delete-todo-by-id", todo_id=id))
         assert res.status_code == status_code
 
 
 class TestGetTodoTasks:
+    """Testing get todotask endpoint."""
+
     async def test_can_get_all_task(
         self,
         app: FastAPI,
@@ -284,6 +313,7 @@ class TestGetTodoTasks:
         test_todo: TodoInDB,
         test_todos_list_as_task: List[TodoInDB],
     ) -> None:
+        """User can get all todo's with that are offered as task."""
         res = await authorized_client.get(app.url_path_for("todo_task:list-all-tasks"))
         assert res.status_code == status.HTTP_200_OK
         assert isinstance(res.json(), list)

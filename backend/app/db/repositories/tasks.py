@@ -70,7 +70,7 @@ MARK_TASK_COMPLETE_QUERY = """
 
 
 class TasksRepository(BaseRepository):
-    """class for tasks."""
+    """All db actions associated with the Task resources."""
 
     async def set_task_for_todo_for_user(self, *, todo: TodoInDB, task_taker: UserInDB):
         """Set a task for user and accept."""

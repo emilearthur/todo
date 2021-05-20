@@ -52,7 +52,7 @@ GET_USER_BY_ID_QUERY = """
 
 
 class UsersRepository(BaseRepository):
-    """class for users."""
+    """All db actions associated with the Users resources."""
 
     def __init__(self, db: Database, r_db: Redis) -> None:
         """Initialize db, auth_path and profiles_repo."""

@@ -45,6 +45,7 @@ class TestCreateTask:
         test_todo_astask: TodoInDB,
         test_user3: UserInDB,
     ) -> None:
+        """Test user can successful create task for others todo."""
         authorized_client = create_authorized_client(user=test_user3)
         res = await authorized_client.post(
             app.url_path_for("assigns:create-offer-for-task", todo_id=test_todo_astask.id)
@@ -62,6 +63,7 @@ class TestCreateTask:
         test_todo: TodoInDB,
         test_user3: UserInDB,
     ) -> None:
+        """Test user cannot create task for others todo with as_task parameter false."""
         authorized_client = create_authorized_client(user=test_user3)
         res = await authorized_client.post(app.url_path_for("assigns:create-offer-for-task", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_400_BAD_REQUEST
@@ -69,6 +71,7 @@ class TestCreateTask:
     async def test_user_cant_create_duplicate_task(
         self, app: FastAPI, create_authorized_client: Callable, test_todo_astask: TodoInDB, test_user4: UserInDB
     ) -> None:
+        """Test task cannot be duplicated."""
         authorized_client = create_authorized_client(user=test_user4)
         res = await authorized_client.post(
             app.url_path_for("assigns:create-offer-for-task", todo_id=test_todo_astask.id)
@@ -87,12 +90,14 @@ class TestCreateTask:
         test_user: UserInDB,
         test_todo: TodoInDB,
     ) -> None:
+        """Test user unable to create task for their todo job."""
         res = await authorized_client.post(app.url_path_for("assigns:create-offer-for-task", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_400_BAD_REQUEST
 
     async def test_unauthenticated_users_cant_create_todo(
         self, app: FastAPI, client: AsyncClient, test_todo: TodoInDB
     ) -> None:
+        """Test unauthenticated users cannot create an offer for a task."""
         res = await client.post(app.url_path_for("assigns:create-offer-for-task", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -107,6 +112,7 @@ class TestCreateTask:
     async def test_wrong_id_give_error_status(
         self, app: FastAPI, create_authorized_client: Callable, test_user5: UserInDB, id: int, status_code: int
     ) -> None:
+        """Test wrong todo ids returns errors."""
         authorized_client = create_authorized_client(user=test_user5)
         res = await authorized_client.post(app.url_path_for("assigns:create-offer-for-task", todo_id=id))
         assert res.status_code == status_code
@@ -216,6 +222,7 @@ class TestAcceptTasks:
         test_user_list: List[UserInDB],
         test_todo_with_tasks: TodoInDB,
     ) -> None:
+        """Test todo task owner can accept offers."""
         selected_user = random.choice(test_user_list)
         authorized_client = create_authorized_client(user=test_user2)
         res = await authorized_client.put(
@@ -238,6 +245,7 @@ class TestAcceptTasks:
         test_user_list: List[UserInDB],
         test_todo_with_tasks: TodoInDB,
     ) -> None:
+        """Test non task owner cannot accept offer."""
         selected_user = random.choice(test_user_list)
         res = await authorized_client.put(
             app.url_path_for(
@@ -256,6 +264,7 @@ class TestAcceptTasks:
         test_user_list: List[UserInDB],
         test_todo_with_tasks: TodoInDB,
     ) -> None:
+        """Test that todo owner can't accept multiple task offers."""
         authorized_client = create_authorized_client(user=test_user2)
         res = await authorized_client.put(
             app.url_path_for(
@@ -283,6 +292,7 @@ class TestAcceptTasks:
         test_user_list: List[UserInDB],
         test_todo_with_tasks: TodoInDB,
     ) -> None:
+        """Test once a task is accepted, others are rejected."""
         selected_user = random.choice(test_user_list)
         authorized_client = create_authorized_client(user=test_user2)
         res = await authorized_client.put(
@@ -316,6 +326,7 @@ class TestCancelTasks:
         test_user3,
         test_todo_with_accepted_task_offer: TodoInDB,
     ) -> None:
+        """Test user can cancel task after its been accepted."""
         accepted_user_client = create_authorized_client(user=test_user3)
         res = await accepted_user_client.put(
             app.url_path_for("assigns:cancel-task-from-user", todo_id=test_todo_with_accepted_task_offer.id)
@@ -333,6 +344,7 @@ class TestCancelTasks:
         test_user4: UserInDB,
         test_todo_with_accepted_task_offer: TodoInDB,
     ) -> None:
+        """Test only accpeted offers can be cancelled."""
         user_client = create_authorized_client(user=test_user4)
         res = await user_client.put(
             app.url_path_for("assigns:cancel-task-from-user", todo_id=test_todo_with_accepted_task_offer.id)
@@ -345,7 +357,8 @@ class TestCancelTasks:
         create_authorized_client: Callable,
         test_user3: UserInDB,
         test_todo_with_accepted_task_offer: TodoInDB,
-    ):
+    ) -> None:
+        """Test cancelling task, set other existing offers to pending."""
         accepted_user_client = create_authorized_client(user=test_user3)
         res = await accepted_user_client.put(
             app.url_path_for("assigns:cancel-task-from-user", todo_id=test_todo_with_accepted_task_offer.id)
