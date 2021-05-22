@@ -1,12 +1,15 @@
 """DB repo for tasks."""
 
-from typing import List
+from typing import List, Union
 
 from app.db.repositories.base import BaseRepository
-from app.models.task import TaskCreate, TaskInDB
+from app.db.repositories.users import UsersRepository
+from app.models.task import TaskCreate, TaskInDB, TaskPublic
 from app.models.todo import TodoInDB
 from app.models.user import UserInDB
+from databases import Database
 from fastapi import HTTPException, status
+from redis.client import Redis
 
 CREATE_TASK_FOR_TODO_QUERY = """
     INSERT INTO user_task_for_todos (todo_id, user_id, status)
@@ -72,6 +75,11 @@ MARK_TASK_COMPLETE_QUERY = """
 class TasksRepository(BaseRepository):
     """All db actions associated with the Task resources."""
 
+    def __init__(self, db: Database, r_db: Redis) -> None:
+        """Initilizing database, redis and users_repository."""
+        super().__init__(db, r_db)
+        self.users_repo = UsersRepository(db, r_db)
+
     async def set_task_for_todo_for_user(self, *, todo: TodoInDB, task_taker: UserInDB):
         """Set a task for user and accept."""
         if await self.get_offer_for_task_from_user(todo=todo, user=task_taker):
@@ -94,10 +102,13 @@ class TasksRepository(BaseRepository):
         )
         return TaskInDB(**created_task)
 
-    async def list_offers_for_task(self, *, todo: TodoInDB) -> List[TaskInDB]:
+    async def list_offers_for_task(self, *, todo: TodoInDB, populate: bool = True) -> List[Union[TaskInDB, TaskPublic]]:
         """Get all offers of a task from the db."""
         tasks = await self.db.fetch_all(query=LIST_OFFERS_FOR_TASK_QUERY, values={"todo_id": todo.id})
-        return [TaskInDB(**task) for task in tasks]
+        tasks = [TaskInDB(**task) for task in tasks]
+        if populate:
+            return [await self.populate_task(task=task) for task in tasks]
+        return tasks
 
     async def get_offer_for_task_from_user(self, *, todo: TodoInDB, user: UserInDB) -> TaskInDB:
         """Get an offer for a task from db."""
@@ -144,4 +155,11 @@ class TasksRepository(BaseRepository):
         """Check task as complete."""
         return await self.db.fetch_one(
             query=MARK_TASK_COMPLETE_QUERY, values={"todo_id": todo.id, "user_id": tasktaker.id}
+        )
+
+    async def populate_task(self, *, task: TaskInDB) -> TaskPublic:
+        """Add user details to task."""
+        return TaskPublic(
+            **task.dict(),
+            user=await self.users_repo.get_user_by_id(user_id=task.user_id),
         )

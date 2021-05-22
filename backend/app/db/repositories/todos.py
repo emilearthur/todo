@@ -50,13 +50,6 @@ LIST_ALL_USER_TODOS_QUERY = """
     WHERE owner = :owner;
 """
 
-LIST_ALL_TODOS_WITH_OFFERS = """
-    SELECT id, name, notes, priority, duedate, owner, created_at, updated_at, as_task
-    FROM todos
-    WHERE owner != :owner
-    AND as_task = TRUE
-"""
-
 
 class TodosRepository(BaseRepository):
     """All db actions associated with the Todos resources."""
@@ -108,13 +101,8 @@ class TodosRepository(BaseRepository):
         """Delete todo via todo id."""
         return await self.db.execute(query=DELETE_TODO_BY_ID_QUERY, values={"id": todo.id})
 
-    async def list_all_todo_for_task(self, *, requesting_user: UserInDB) -> List[TodoInDB]:
-        """Get all todo for task. Exclude user's todos snce user cannot accept their own task."""
-        todos = await self.db.fetch_all(query=LIST_ALL_TODOS_WITH_OFFERS, values={"owner": requesting_user.id})
-        return [TodoInDB(**todo) for todo in todos]
-
     async def populate_todo(self, *, todo: TodoInDB, requesting_user: UserInDB = None) -> TodoPublic:
-        """pass."""
+        """Populate todo with user."""
         return TodoPublic(
             **todo.dict(exclude={"owner"}),
             owner=await self.users_repo.get_user_by_id(user_id=todo.owner),

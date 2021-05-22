@@ -17,7 +17,7 @@ from app.db.repositories.users import UsersRepository
 from app.models.comment import CommentCreate, CommentInDB
 from app.models.evaluation import EvaluationCreate
 from app.models.task import TaskCreate
-from app.models.todo import TodoCreate, TodoInDB
+from app.models.todo import TodoCreate, TodoInDB, TodoUpdate
 from app.models.user import UserCreate, UserInDB
 from app.services import auth_service
 from asgi_lifespan import LifespanManager
@@ -391,3 +391,61 @@ async def test_list_of_todos_with_evaluated_task(
         )
         for i in range(5)
     ]
+
+
+@pytest.fixture
+async def test_list_of_new_and_updated_todos(
+    db: Database, r_db: Redis, test_user_list: List[UserInDB]
+) -> List[TodoInDB]:
+    """List of new and updated todos."""
+    todos_repo = TodosRepository(db, r_db)
+    new_todos = [
+        await todos_repo.create_todo(
+            new_todo=TodoCreate(
+                name=f"test todo {i}",
+                notes="some notes",
+                priority="critical",
+                duedate=datetime.date.today(),
+                as_task=True,
+            ),
+            requesting_user=test_user_list[i % len(test_user_list)],
+        )
+        for i in range(50)
+    ]
+    for i, todo in enumerate(new_todos):
+        if i % 4 == 0:
+            updated_todo = await todos_repo.update_todos_by_id(
+                todo=todo,
+                todo_update=TodoUpdate(notes=f"Updated {todo.notes}", priority="high"),
+            )
+            new_todos[i] = updated_todo
+    return new_todos
+
+
+@pytest.fixture
+async def test_list_of_new_and_updated_todos_0(
+    db: Database, r_db: Redis, test_user_list: List[UserInDB]
+) -> List[TodoInDB]:
+    """List of new and updated todos."""
+    todos_repo = TodosRepository(db, r_db)
+    new_todos = [
+        await todos_repo.create_todo(
+            new_todo=TodoCreate(
+                name=f"test todo {i}",
+                notes="some notes",
+                priority="critical",
+                duedate=datetime.date.today(),
+                as_task=False,
+            ),
+            requesting_user=test_user_list[i % len(test_user_list)],
+        )
+        for i in range(10)
+    ]
+    for i, todo in enumerate(new_todos):
+        if i % 4 == 10:
+            updated_todo = await todos_repo.update_todos_by_id(
+                todo=todo,
+                todo_update=TodoUpdate(notes=f"Updated {todo.notes}", priority="high"),
+            )
+            new_todos[i] = updated_todo
+    return new_todos
