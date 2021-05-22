@@ -30,8 +30,6 @@ class TestTodosRoute:
         assert res.status_code != status.HTTP_404_NOT_FOUND
         res = await client.delete(app.url_path_for("todos:delete-todo-by-id", todo_id=0))
         assert res.status_code != status.HTTP_404_NOT_FOUND
-        res = await client.get(app.url_path_for("todo_task:list-all-tasks"))
-        assert res.status_code != status.HTTP_404_NOT_FOUND
 
     async def test_invalid_input_raises_error(self, app: FastAPI, authorized_client: AsyncClient) -> None:
         """Test invalid input to route raises error 422."""
@@ -302,25 +300,25 @@ class TestDeleteTodo:
         assert res.status_code == status_code
 
 
-class TestGetTodoTasks:
-    """Testing get todotask endpoint."""
+# class TestGetTodoTasks:
+#     """Testing get todotask endpoint."""
 
-    async def test_can_get_all_task(
-        self,
-        app: FastAPI,
-        authorized_client: AsyncClient,
-        test_user: UserInDB,
-        test_todo: TodoInDB,
-        test_todos_list_as_task: List[TodoInDB],
-    ) -> None:
-        """User can get all todo's with that are offered as task."""
-        res = await authorized_client.get(app.url_path_for("todo_task:list-all-tasks"))
-        assert res.status_code == status.HTTP_200_OK
-        assert isinstance(res.json(), list)
-        assert len(res.json()) > 0
-        todos = [TodoInDB(**todo) for todo in res.json()]
-        assert test_todo not in todos
-        for todo in todos:
-            assert todo.owner != test_user.id
-            assert todo.as_task is True
-        assert all(todo in todos for todo in test_todos_list_as_task)
+#     async def test_can_get_all_task(
+#         self,
+#         app: FastAPI,
+#         authorized_client: AsyncClient,
+#         test_user: UserInDB,
+#         test_todo: TodoInDB,
+#         test_todos_list_as_task: List[TodoInDB],
+#     ) -> None:
+#         """User can get all todo's with that are offered as task."""
+#         res = await authorized_client.get(app.url_path_for("todo_task:list-all-tasks"))
+#         assert res.status_code == status.HTTP_200_OK
+#         assert isinstance(res.json(), list)
+#         assert len(res.json()) > 0
+#         todos = [TodoInDB(**todo) for todo in res.json()]
+#         assert test_todo not in todos
+#         for todo in todos:
+#             assert todo.owner != test_user.id
+#             assert todo.as_task is True
+#         assert all(todo in todos for todo in test_todos_list_as_task)
