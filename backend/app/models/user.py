@@ -32,15 +32,20 @@ class UserUpdate(CoreModel):
     """Users are allowed to update their email and username."""
 
     email: Optional[EmailStr]
-    email_verified: bool = False
     username: Optional[constr(min_length=3, regex=regex)]
 
 
 class UserPasswordUpdate(CoreModel):
-    """Users can change their password."""
+    """Generated pasword and salt."""
 
     password: constr(min_length=7, max_length=100)
     salt: str
+
+
+class UserPasswordChange(CoreModel):
+    """User can change their password."""
+
+    password: constr(min_length=7, max_length=100)
 
 
 class UserInDB(IDModelMixin, DateTimeModelMixin, UserBase):
