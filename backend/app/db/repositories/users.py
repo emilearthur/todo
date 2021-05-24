@@ -9,7 +9,8 @@ from typing import Optional
 from app.db.repositories.base import BaseRepository
 from app.db.repositories.profiles import ProfilesRepository
 from app.models.profile import ProfileCreate
-from app.models.user import UserCreate, UserInDB, UserPasswordUpdate, UserPublic, UserUpdate
+from app.models.user import (UserCreate, UserInDB, UserPasswordChange,
+                             UserPublic, UserUpdate)
 from app.services import auth_service, email_service
 from databases import Database
 from fastapi import HTTPException, status
@@ -208,15 +209,11 @@ class UsersRepository(BaseRepository):
         )
         return UserInDB(**updated_user)
 
-    async def update_password(self, *, password_update: Optional[str], requesting_user: UserInDB) -> UserInDB:
+    async def update_password(self, *, new_password: UserPasswordChange, requesting_user: UserInDB) -> UserInDB:
         """Update User Password."""
-        user = await self.get_user_by_email(email=requesting_user.email, populate=False)
-        if password_update is not None:
-            user_pwd_update = self.auth_service.create_salt_and_hashed_password(plaintext_pwd=password_update)
-            user.password = user_pwd_update.password
-            user.salt = user_pwd_update.salt
+        user_pwd_update = self.auth_service.create_salt_and_hashed_password(plaintext_pwd=new_password.password)
         updated_user = await self.db.fetch_one(
             query=UPDATE_USER_PASSWORD_QUERY,
-            values={"password": user.password, "salt": user.salt, "id": requesting_user.id},
+            values={"password": user_pwd_update.password, "salt": user_pwd_update.salt, "id": requesting_user.id},
         )
         return UserInDB(**updated_user)

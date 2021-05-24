@@ -10,6 +10,7 @@ from app.models.user import UserInDB, UserPublic
 from app.services import auth_service
 from databases import Database
 from fastapi import FastAPI, HTTPException, status
+from fastapi.encoders import jsonable_encoder
 from httpx import AsyncClient
 from pydantic import ValidationError
 from redis.client import Redis
@@ -318,3 +319,69 @@ class TestUserMe:
             headers={"Authorization": f"{jwt_prefix} {token}"},
         )
         assert res.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+class TestUserUpdate:
+    """Test user can update detail and password."""
+
+    async def test_authorized_client_can_change_password_and_login(
+        self,
+        app: FastAPI,
+        client: AsyncClient,
+        authorized_client: AsyncClient,
+        test_user: UserInDB,
+    ) -> None:
+        """Test login change password and login to get token."""
+        client.headers["content-type"] = "application/x-www-form-urlencoded"
+        login_data = {
+            "username": test_user.email,
+            "password": "mypassword",
+        }
+        res = await client.post(app.url_path_for("users:login-email-and-password"), data=login_data)
+        assert res.status_code == status.HTTP_200_OK
+
+        # change password
+        res = await authorized_client.put(
+            app.url_path_for("users:update-password"),
+            json=jsonable_encoder(
+                {"new_password": {"password": "strings"}},
+            ),
+        )
+        assert res.status_code == status.HTTP_200_OK
+
+        # try login again with wrong details.
+        client.headers["content-type"] = "application/x-www-form-urlencoded"
+        login_data = {
+            "username": test_user.email,
+            "password": "mypasswordss",
+        }
+        res = await client.post(app.url_path_for("users:login-email-and-password"), data=login_data)
+        assert res.status_code == status.HTTP_401_UNAUTHORIZED
+
+        # try login again with correct details.
+        client.headers["content-type"] = "application/x-www-form-urlencoded"
+        login_data = {
+            "username": test_user.email,
+            "password": "strings",
+        }
+        res = await client.post(app.url_path_for("users:login-email-and-password"), data=login_data)
+        assert res.status_code == status.HTTP_200_OK
+
+    async def test_client_updates_email_and_username(
+        self,
+        app: FastAPI,
+        authorized_client: AsyncClient,
+        test_user: UserInDB,
+    ) -> None:
+        """Test client can updated username and password."""
+        assert test_user.email != "kent@superman.com"
+        assert test_user.username != "petermain"
+        res = await authorized_client.put(
+            app.url_path_for("users:update-own-detials"),
+            json={"user_update": {"email": "kent@superman.com", "username": "petermain"}},
+        )
+        assert res.status_code == status.HTTP_200_OK
+        user = UserPublic(**res.json())
+        assert user.email == "kent@superman.com"
+        assert user.username == "petermain"
+        assert user.email_verified is False
