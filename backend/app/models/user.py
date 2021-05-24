@@ -32,7 +32,6 @@ class UserUpdate(CoreModel):
     """Users are allowed to update their email and username."""
 
     email: Optional[EmailStr]
-    email_verified: bool = False
     username: Optional[constr(min_length=3, regex=regex)]
 
 

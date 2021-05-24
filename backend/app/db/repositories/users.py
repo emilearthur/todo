@@ -9,7 +9,7 @@ from typing import Optional
 from app.db.repositories.base import BaseRepository
 from app.db.repositories.profiles import ProfilesRepository
 from app.models.profile import ProfileCreate
-from app.models.user import UserCreate, UserInDB, UserPublic
+from app.models.user import UserCreate, UserInDB, UserPasswordUpdate, UserPublic, UserUpdate
 from app.services import auth_service, email_service
 from databases import Database
 from fastapi import HTTPException, status
@@ -44,10 +44,27 @@ UPDATE_EMAIL_STATUS_QUERY = """
     RETURNING id, username, email, email_verified, password, salt, is_active, is_superuser, created_at, updated_at;
 """
 
+UPDATE_USER_DETAILS_QUERY = """
+    UPDATE users
+    SET email = :email,
+        email_verified  = :email_verified,
+        username = :username
+    WHERE id = :id
+    RETURNING id, username, email, email_verified, password, salt, is_active, is_superuser, created_at, updated_at;
+"""
+
 GET_USER_BY_ID_QUERY = """
     SELECT id, username, email, email_verified, password, salt, is_active, is_superuser, created_at, updated_at
     FROM users
     WHERE id = :id;
+"""
+
+UPDATE_USER_PASSWORD_QUERY = """
+    UPDATE users
+    SET password  = :password,
+        salt      = :salt
+    WHERE id = :id
+    RETURNING id, username, email, email_verified, password, salt, is_active, is_superuser, created_at, updated_at;
 """
 
 
@@ -159,3 +176,47 @@ class UsersRepository(BaseRepository):
             if populate:
                 return await self.populate_user(user=user)
             return user
+
+    async def update_user_details(self, *, user_update: UserUpdate, requesting_user: UserInDB) -> UserInDB:
+        """Update user details."""
+        if await self.get_user_by_email(email=user_update.email):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"{user_update.email} is already taken. Register with a new email",
+            )
+        if await self.get_user_by_username(username=user_update.username):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"{user_update.username} is already taken. Register with a new email",
+            )
+        user = await self.get_user_by_email(email=requesting_user.email, populate=False)
+        user_details = UserUpdate(**user.dict())
+        user_updated_params = user_details.copy(update=user_update.dict(exclude_unset=True))
+        if user_update.email is not None:
+            email_verified = False
+        else:
+            email_verified = user.email_verified
+
+        updated_user = await self.db.fetch_one(
+            query=UPDATE_USER_DETAILS_QUERY,
+            values={
+                "email": user_updated_params.email,
+                "username": user_updated_params.username,
+                "email_verified": email_verified,
+                "id": requesting_user.id,
+            },
+        )
+        return UserInDB(**updated_user)
+
+    async def update_password(self, *, password_update: Optional[str], requesting_user: UserInDB) -> UserInDB:
+        """Update User Password."""
+        user = await self.get_user_by_email(email=requesting_user.email, populate=False)
+        if password_update is not None:
+            user_pwd_update = self.auth_service.create_salt_and_hashed_password(plaintext_pwd=password_update)
+            user.password = user_pwd_update.password
+            user.salt = user_pwd_update.salt
+        updated_user = await self.db.fetch_one(
+            query=UPDATE_USER_PASSWORD_QUERY,
+            values={"password": user.password, "salt": user.salt, "id": requesting_user.id},
+        )
+        return UserInDB(**updated_user)
