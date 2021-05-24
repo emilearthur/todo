@@ -342,9 +342,9 @@ class TestUserUpdate:
 
         # change password
         res = await authorized_client.put(
-            app.url_path_for("users:update-password"),
+            app.url_path_for("users:update-own-detials"),
             json=jsonable_encoder(
-                {"new_password": {"password": "strings"}},
+                {"user_update": {"password": "strings"}},
             ),
         )
         assert res.status_code == status.HTTP_200_OK

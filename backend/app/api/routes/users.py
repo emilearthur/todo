@@ -7,7 +7,7 @@ from app.db.repositories.comments import CommentsRepository
 from app.db.repositories.users import UsersRepository
 from app.models.comment import CommentPublic
 from app.models.token import AccessToken
-from app.models.user import UserCreate, UserInDB, UserPasswordChange, UserPublic, UserUpdate
+from app.models.user import UserCreate, UserInDB, UserPublic, UserUpdate
 from app.services import auth_service
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -62,19 +62,6 @@ async def update_own_details(
 ) -> UserPublic:
     """Update user route."""
     updated_user_details = await user_repo.update_user_details(user_update=user_update, requesting_user=current_user)
-    return UserPublic(**updated_user_details.dict())
-
-
-@router.put("/me/update_password/", response_model=UserPublic, name="users:update-password")
-async def update_passwrod(
-    new_password: UserPasswordChange = Body(..., embed=True),
-    current_user: UserInDB = Depends(get_current_active_user),
-    user_repo: UsersRepository = Depends(get_repository(UsersRepository)),
-) -> UserPublic:
-    """Update user route."""
-    updated_user_details = await user_repo.update_password(
-        new_password=new_password, requesting_user=current_user
-    )
     return UserPublic(**updated_user_details.dict())
 
 
