@@ -24,7 +24,7 @@ class UserCreate(CoreModel):
     """Email, username and password for registering new user."""
 
     email: EmailStr
-    password: constr(min_length=7, max_length=100)
+    password: constr(min_length=7, max_length=80)
     username: constr(min_length=3, regex=regex)
 
 
@@ -33,6 +33,14 @@ class UserUpdate(CoreModel):
 
     email: Optional[EmailStr]
     username: Optional[constr(min_length=3, regex=regex)]
+    password: Optional[constr(min_length=7, max_length=80)]
+
+
+class UserUpdateInDB(UserUpdate, IDModelMixin):
+    """Users Update details In DB."""
+
+    salt: str
+    email_verified: bool
 
 
 class UserPasswordUpdate(CoreModel):

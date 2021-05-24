@@ -9,8 +9,7 @@ from typing import Optional
 from app.db.repositories.base import BaseRepository
 from app.db.repositories.profiles import ProfilesRepository
 from app.models.profile import ProfileCreate
-from app.models.user import (UserCreate, UserInDB, UserPasswordChange,
-                             UserPublic, UserUpdate)
+from app.models.user import UserCreate, UserInDB, UserPublic, UserUpdate, UserUpdateInDB
 from app.services import auth_service, email_service
 from databases import Database
 from fastapi import HTTPException, status
@@ -47,9 +46,11 @@ UPDATE_EMAIL_STATUS_QUERY = """
 
 UPDATE_USER_DETAILS_QUERY = """
     UPDATE users
-    SET email = :email,
+    SET email           = :email,
         email_verified  = :email_verified,
-        username = :username
+        username        = :username,
+        password        = :password,
+        salt            = :salt
     WHERE id = :id
     RETURNING id, username, email, email_verified, password, salt, is_active, is_superuser, created_at, updated_at;
 """
@@ -58,14 +59,6 @@ GET_USER_BY_ID_QUERY = """
     SELECT id, username, email, email_verified, password, salt, is_active, is_superuser, created_at, updated_at
     FROM users
     WHERE id = :id;
-"""
-
-UPDATE_USER_PASSWORD_QUERY = """
-    UPDATE users
-    SET password  = :password,
-        salt      = :salt
-    WHERE id = :id
-    RETURNING id, username, email, email_verified, password, salt, is_active, is_superuser, created_at, updated_at;
 """
 
 
@@ -191,29 +184,22 @@ class UsersRepository(BaseRepository):
                 detail=f"{user_update.username} is already taken. Register with a new email",
             )
         user = await self.get_user_by_email(email=requesting_user.email, populate=False)
-        user_details = UserUpdate(**user.dict())
-        user_updated_params = user_details.copy(update=user_update.dict(exclude_unset=True))
+        user_details = UserUpdateInDB(**user.dict())
+
         if user_update.email is not None:
-            email_verified = False
-        else:
-            email_verified = user.email_verified
+            user_details.email = user_update.email
+            user_details.email_verified = False
+
+        if user_update.username is not None:
+            user_details.username = user_update.username
+
+        if user_update.password is not None:
+            user_pwd_update = self.auth_service.create_salt_and_hashed_password(plaintext_pwd=user_update.password)
+            user_details.password = user_pwd_update.password
+            user_details.salt = user_pwd_update.salt
 
         updated_user = await self.db.fetch_one(
             query=UPDATE_USER_DETAILS_QUERY,
-            values={
-                "email": user_updated_params.email,
-                "username": user_updated_params.username,
-                "email_verified": email_verified,
-                "id": requesting_user.id,
-            },
-        )
-        return UserInDB(**updated_user)
-
-    async def update_password(self, *, new_password: UserPasswordChange, requesting_user: UserInDB) -> UserInDB:
-        """Update User Password."""
-        user_pwd_update = self.auth_service.create_salt_and_hashed_password(plaintext_pwd=new_password.password)
-        updated_user = await self.db.fetch_one(
-            query=UPDATE_USER_PASSWORD_QUERY,
-            values={"password": user_pwd_update.password, "salt": user_pwd_update.salt, "id": requesting_user.id},
+            values=user_details.dict(),
         )
         return UserInDB(**updated_user)
