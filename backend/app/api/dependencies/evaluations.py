@@ -35,10 +35,11 @@ async def check_evaluation_create_permissions(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Only users accepted tasks can be evaluated."
         )
-    # check that evaluations cna only be made for user whose offer for task was accepted for a job.
+    # check that evaluations can only be made for user whose offer for task was accepted for a job.
     if task.user_id != tasktaker.id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="You are not authorized to leave an this user."
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You are not authorized to leave an evaluation for this user.",
         )
 
 

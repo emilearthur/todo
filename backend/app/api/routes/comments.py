@@ -1,10 +1,16 @@
 """Routes for comments."""
 
 from app.api.dependencies.auth import get_current_active_user
-from app.api.dependencies.comments import check_comment_modification_permission, get_comment_by_id_from_path
+from app.api.dependencies.comments import (
+    check_comment_modification_permission,
+    check_comment_todo_permission,
+    get_comment_by_id_from_path,
+)
 from app.api.dependencies.database import get_repository
+from app.api.dependencies.todos import get_todo_by_id_from_path
 from app.db.repositories.comments import CommentsRepository
 from app.models.comment import CommentCreate, CommentInDB, CommentPublic, CommentUpdate
+from app.models.todo import TodoInDB
 from app.models.user import UserInDB
 from fastapi import APIRouter, Body, Depends, status
 
@@ -12,15 +18,22 @@ router = APIRouter()
 
 
 @router.post(
-    "/", response_model=CommentPublic, name="comments:create-comment-todo", status_code=status.HTTP_201_CREATED
+    "/{todo_id}",
+    response_model=CommentPublic,
+    name="comments:create-comment-todo",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(check_comment_todo_permission)],
 )
 async def create_new_comment(
     new_comment: CommentCreate = Body(..., embed=True),
     comments_repo: CommentsRepository = Depends(get_repository(CommentsRepository)),
     current_user: UserInDB = Depends(get_current_active_user),
+    todo: TodoInDB = Depends(get_todo_by_id_from_path),
 ) -> CommentPublic:
     """Create comments."""
-    created_comment = await comments_repo.create_comment(new_comment=new_comment, requesting_user=current_user)
+    created_comment = await comments_repo.create_comment(
+        new_comment=new_comment, todo=todo, requesting_user=current_user
+    )
     return CommentPublic(**created_comment.dict())
 
 
@@ -51,3 +64,19 @@ async def delete_comment(
 ) -> int:
     """Delete comment."""
     return await comments_repo.delete_comment(comment=comment)
+
+
+@router.post(
+    "/{todo_id}/{username}/}",
+    response_model=CommentPublic,
+    name="comments:create-comment-todo",
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_new_comment_task(
+    new_comment: CommentCreate = Body(..., embed=True),
+    comments_repo: CommentsRepository = Depends(get_repository(CommentsRepository)),
+    current_user: UserInDB = Depends(get_current_active_user),
+) -> CommentPublic:
+    """Create comments."""
+    created_comment = await comments_repo.create_comment(new_comment=new_comment, requesting_user=current_user)
+    return CommentPublic(**created_comment.dict())

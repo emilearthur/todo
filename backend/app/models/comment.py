@@ -1,9 +1,8 @@
 """All functions to handle model of comments."""
 from typing import Optional
 
-from pydantic import conint
-
 from app.models.core import CoreModel, DateTimeModelMixin, IDModelMixin
+from pydantic import conint
 
 
 class CommentBase(CoreModel):
@@ -16,7 +15,6 @@ class CommentCreate(CommentBase):
     """Create comments."""
 
     body: str
-    todo_id: conint(ge=1)
 
 
 class CommentUpdate(CommentBase):
