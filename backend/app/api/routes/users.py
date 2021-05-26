@@ -79,7 +79,7 @@ async def send_email_verification(
     return JSONResponse(status_code=200, content=content)
 
 
-@router.get("/me/verify/{verification_code}", response_model=UserPublic, name="users:email-verification")
+@router.get("/me/verify/{verification_code}/", response_model=UserPublic, name="users:email-verification")
 async def verify_user(
     verification_code: str,
     current_user: UserInDB = Depends(get_current_active_user),

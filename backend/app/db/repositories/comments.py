@@ -61,20 +61,20 @@ class CommentsRepository(BaseRepository):
         super().__init__(db, r_db)
         self.todos_repo = TodosRepository(db, r_db)
 
-    async def create_comment(self, *, new_comment: CommentCreate, requesting_user: UserInDB) -> CommentInDB:
+    async def create_comment(
+        self, *, new_comment: CommentCreate, todo=TodoInDB, requesting_user: UserInDB
+    ) -> CommentInDB:
         """Create comment."""
         # check if todo exist
-        todo_exist = await self.todos_repo.get_todo_by_id(id=new_comment.todo_id, requesting_user=requesting_user)
+        todo_exist = await self.todos_repo.get_todo_by_id(id=todo.id, requesting_user=requesting_user)
         if not todo_exist:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="todo cannot be found thus cannot comment"
             )
-        if todo_exist.owner.id != requesting_user.id:
-            print(todo_exist.owner, requesting_user.id)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="only todo owner can comment.")
 
         comment = await self.db.fetch_one(
-            query=CREATE_COMMENT_QUERY, values={**new_comment.dict(), "comment_owner": requesting_user.id}
+            query=CREATE_COMMENT_QUERY,
+            values={**new_comment.dict(), "todo_id": todo.id, "comment_owner": requesting_user.id},
         )
         return CommentInDB(**comment)
 

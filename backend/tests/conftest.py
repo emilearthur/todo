@@ -131,29 +131,29 @@ async def test_todo_astask(db: Database, r_db: Redis, test_user: UserInDB) -> To
 @pytest.fixture
 def new_comment(test_todo: TodoInDB):
     """Create comments."""
-    return CommentCreate(body="test comments", todo_id=test_todo.id)
+    return CommentCreate(body="test comments")
 
 
 @pytest.fixture
 def new_comment2(test_todo_2: TodoInDB):
     """Create comments."""
-    return CommentCreate(body="test comments", todo_id=test_todo_2.id)
+    return CommentCreate(body="test comments")
 
 
 @pytest.fixture
 async def test_comment(db: Database, r_db: Redis, test_user: UserInDB, test_todo: TodoInDB) -> CommentInDB:
     """Comments 1 to a todo."""
     comments_repo = CommentsRepository(db, r_db)
-    new_comment = CommentCreate(body="test comments", todo_id=test_todo.id)
-    return await comments_repo.create_comment(new_comment=new_comment, requesting_user=test_user)
+    new_comment = CommentCreate(body="test comments")
+    return await comments_repo.create_comment(new_comment=new_comment, todo=test_todo, requesting_user=test_user)
 
 
 @pytest.fixture
 async def test_comment_2(db: Database, r_db: Redis, test_user: UserInDB, test_todo: TodoInDB) -> CommentInDB:
     """Comments 2 to a todo."""
     comments_repo = CommentsRepository(db, r_db)
-    new_comment = CommentCreate(body="test comments", todo_id=test_todo.id)
-    return await comments_repo.create_comment(new_comment=new_comment, requesting_user=test_user)
+    new_comment = CommentCreate(body="test comments")
+    return await comments_repo.create_comment(new_comment=new_comment, todo=test_todo, requesting_user=test_user)
 
 
 @pytest.fixture
@@ -212,7 +212,8 @@ async def test_comment_list(
     comments_repo = CommentsRepository(db, r_db)
     return [
         await comments_repo.create_comment(
-            new_comment=CommentCreate(body=f"test comment {i}", todo_id=test_todos_list[i].id),
+            new_comment=CommentCreate(body=f"test comment {i}"),
+            todo=test_todos_list[i],
             requesting_user=test_user2,
         )
         for i in range(5)
