@@ -15,6 +15,7 @@ class CommentCreate(CommentBase):
     """Create comments."""
 
     body: str
+    task: Optional[bool] = False
 
 
 class CommentUpdate(CommentBase):

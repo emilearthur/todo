@@ -145,7 +145,7 @@ async def test_comment(db: Database, r_db: Redis, test_user: UserInDB, test_todo
     """Comments 1 to a todo."""
     comments_repo = CommentsRepository(db, r_db)
     new_comment = CommentCreate(body="test comments")
-    return await comments_repo.create_comment(new_comment=new_comment, todo=test_todo, requesting_user=test_user)
+    return await comments_repo.create_comment_todo(new_comment=new_comment, todo=test_todo, requesting_user=test_user)
 
 
 @pytest.fixture
@@ -153,7 +153,7 @@ async def test_comment_2(db: Database, r_db: Redis, test_user: UserInDB, test_to
     """Comments 2 to a todo."""
     comments_repo = CommentsRepository(db, r_db)
     new_comment = CommentCreate(body="test comments")
-    return await comments_repo.create_comment(new_comment=new_comment, todo=test_todo, requesting_user=test_user)
+    return await comments_repo.create_comment_todo(new_comment=new_comment, todo=test_todo, requesting_user=test_user)
 
 
 @pytest.fixture
@@ -211,7 +211,7 @@ async def test_comment_list(
     """List of comments on a todo."""
     comments_repo = CommentsRepository(db, r_db)
     return [
-        await comments_repo.create_comment(
+        await comments_repo.create_comment_todo(
             new_comment=CommentCreate(body=f"test comment {i}"),
             todo=test_todos_list[i],
             requesting_user=test_user2,

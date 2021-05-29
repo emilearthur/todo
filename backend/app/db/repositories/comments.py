@@ -4,19 +4,20 @@ import logging
 from typing import List
 
 from app.db.repositories.base import BaseRepository
+from app.db.repositories.tasks import TasksRepository
 from app.db.repositories.todos import TodosRepository
 from app.models.comment import CommentCreate, CommentInDB, CommentUpdate
+from app.models.task import TaskInDB
 from app.models.todo import TodoInDB
 from app.models.user import UserInDB
 from databases import Database
-from fastapi import HTTPException, status
 from redis.client import Redis
 
 logger = logging.getLogger(__name__)
 
 CREATE_COMMENT_QUERY = """
-    INSERT INTO comments (body, todo_id, comment_owner)
-    VALUES (:body, :todo_id, :comment_owner)
+    INSERT INTO comments (body, todo_id, comment_owner, task)
+    VALUES (:body, :todo_id, :comment_owner, :task)
     RETURNING id, body, todo_id, comment_owner, created_at, updated_at;
 """
 
@@ -30,7 +31,15 @@ GET_COMMENTS_BY_ID_QUERY = """
 GET_ALL_TODO_COMMENTS_QUERY = """
     SELECT id, body, todo_id, comment_owner, created_at, updated_at
     FROM comments
-    WHERE todo_id = :todo_id;
+    WHERE todo_id = :todo_id
+    AND task = 'False';
+"""
+
+GET_ALL_TASKS_COMMENTS_QUERY = """
+    SELECT id, body, todo_id, comment_owner, created_at, updated_at
+    FROM comments
+    WHERE todo_id = :todo_id
+    AND task = 'True';
 """
 
 GET_ALL_USER_COMMENTS_QUERY = """
@@ -60,21 +69,26 @@ class CommentsRepository(BaseRepository):
         """Initialize db to check todos."""
         super().__init__(db, r_db)
         self.todos_repo = TodosRepository(db, r_db)
+        self.tasks_repo = TasksRepository(db, r_db)
 
-    async def create_comment(
+    async def create_comment_todo(
         self, *, new_comment: CommentCreate, todo=TodoInDB, requesting_user: UserInDB
     ) -> CommentInDB:
-        """Create comment."""
-        # check if todo exist
-        todo_exist = await self.todos_repo.get_todo_by_id(id=todo.id, requesting_user=requesting_user)
-        if not todo_exist:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="todo cannot be found thus cannot comment"
-            )
-
+        """Create comment for todo."""
         comment = await self.db.fetch_one(
             query=CREATE_COMMENT_QUERY,
             values={**new_comment.dict(), "todo_id": todo.id, "comment_owner": requesting_user.id},
+        )
+        return CommentInDB(**comment)
+
+    async def create_comment_task(
+        self, *, new_comment: CommentCreate, task=TaskInDB, requesting_user: UserInDB
+    ) -> CommentInDB:
+        """Create comment for task."""
+        # check if todo exist
+        comment = await self.db.fetch_one(
+            query=CREATE_COMMENT_QUERY,
+            values={**new_comment.dict(), "todo_id": task.todo_id, "comment_owner": requesting_user.id},
         )
         return CommentInDB(**comment)
 
@@ -88,6 +102,11 @@ class CommentsRepository(BaseRepository):
     async def get_todo_comments(self, *, todo: TodoInDB) -> List[CommentInDB]:
         """Get all todos comments."""
         comments = await self.db.fetch_all(query=GET_ALL_TODO_COMMENTS_QUERY, values={"todo_id": todo.id})
+        return [CommentInDB(**comment) for comment in comments]
+
+    async def get_task_comments(self, *, task: TaskInDB) -> List[CommentInDB]:
+        """Get all tasks comments."""
+        comments = await self.db.fetch_all(query=GET_ALL_TASKS_COMMENTS_QUERY, values={"todo_id": task.todo_id})
         return [CommentInDB(**comment) for comment in comments]
 
     async def update_comments(self, *, comment: CommentInDB, comment_update: CommentUpdate) -> CommentInDB:

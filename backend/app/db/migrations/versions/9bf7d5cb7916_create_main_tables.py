@@ -167,6 +167,7 @@ def create_commment_table() -> None:
         sa.Column("body", sa.Text, nullable=True, server_default=""),
         sa.Column("todo_id", sa.Integer, sa.ForeignKey("todos.id", ondelete="CASCADE")),
         sa.Column("comment_owner", sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE")),
+        sa.Column("task", sa.Boolean, nullable=True, server_default="False"),
         *timestamps(),
     )
     op.execute(

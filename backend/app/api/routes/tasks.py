@@ -17,7 +17,9 @@ from app.api.dependencies.tasks import (
 )
 from app.api.dependencies.todos import get_todo_by_id_from_path
 from app.api.dependencies.users import get_user_by_username_from_path
+from app.db.repositories.comments import CommentsRepository
 from app.db.repositories.tasks import TasksRepository
+from app.models.comment import CommentInDB
 from app.models.task import TaskCreate, TaskInDB, TaskPublic
 from app.models.todo import TodoInDB
 from app.models.user import UserInDB
@@ -124,3 +126,12 @@ async def rescind_task_from_user(
 ) -> TaskPublic:
     """Cancel task offer from a user."""
     return await tasks_repo.rescind_offer_for_task(task=task)
+
+
+@router.get("/{username}/comments/", response_model=List[CommentInDB], name="task:list-all-task-comments")
+async def get_all_comments(
+    task: TaskInDB = Depends(get_offer_for_task_from_user_by_path),
+    comments_repo: CommentsRepository = Depends(get_repository(CommentsRepository)),
+) -> List[CommentInDB]:
+    """List all comments of a task."""
+    return await comments_repo.get_task_comments(task=task)

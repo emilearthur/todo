@@ -1,10 +1,11 @@
 # About
+This is the backend of a todo application, where one can create todo for him/her self, and also set todos as a task for others to bid for as Offers.
 
+Think of a CTO or team lead dividing a project into multiple task and his/her team members picking it up and implementing them. However, the CTO has the rights to accept a team member or not to work on a particular task or not.
 
+Also, the CTO can set a particular task to a particular team member as well.
 
-
-
-
+Further, the CTO can evaluate his or her team member task.
 
 # Requirements  and installation
 ## Via Cloning The Repository 
@@ -56,3 +57,13 @@ To view API documentation enter ```http://localhost:8000/docs``` in your browser
 * uvicorn
 * Postgres DB - Main Database.
 * Redis - For Email Verfication Implementation.
+
+
+## Reference:
+Great help came from https://www.jeffastor.com/app/blog/
+
+## Things left to implement. 
+* Adding google auth. for authentication and user creation 
+* Configure hcloudinary.com/ to upload user image and return url to when creating users. 
+
+Might add more. 
