@@ -1,6 +1,6 @@
 """Test for comments."""
 
-from typing import Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import pytest
 from app.db.repositories.comments import CommentsRepository
@@ -45,7 +45,7 @@ class TestCommentRoute:
 class TestCreateComment:
     """Test comments create."""
 
-    async def test_valid_input_create_comment(
+    async def test_valid_input_create_comment_for_todo(
         self,
         app: FastAPI,
         authorized_client: AsyncClient,
@@ -64,6 +64,67 @@ class TestCreateComment:
         assert created_comment.todo_id == test_todo.id
         assert created_comment.comment_owner == test_user.id
 
+    async def test_valid_input_create_comment_for_task(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user2: UserInDB,
+        test_user3: UserInDB,
+        test_todo_with_accepted_task_offer: TodoInDB,
+    ) -> None:
+        """Check comments with valid inputs."""
+        new_comment = CommentCreate(body="test comments")
+        authorized_client = create_authorized_client(user=test_user2)
+        res = await authorized_client.post(
+            app.url_path_for(
+                "comments:create-comment-task",
+                todo_id=test_todo_with_accepted_task_offer.id,
+                username=test_user3.username,
+            ),
+            json={"new_comment": jsonable_encoder(new_comment.dict())},
+        )
+        assert res.status_code == status.HTTP_201_CREATED
+        created_comment = CommentPublic(**res.json())
+        assert created_comment.body == new_comment.body
+        assert created_comment.todo_id == test_todo_with_accepted_task_offer.id
+        assert created_comment.comment_owner == test_user2.id
+
+        authorized_client = create_authorized_client(user=test_user3)
+        res = await authorized_client.post(
+            app.url_path_for(
+                "comments:create-comment-task",
+                todo_id=test_todo_with_accepted_task_offer.id,
+                username=test_user3.username,
+            ),
+            json={"new_comment": jsonable_encoder(new_comment.dict())},
+        )
+        assert res.status_code == status.HTTP_201_CREATED
+        created_comment = CommentPublic(**res.json())
+        assert created_comment.body == new_comment.body
+        assert created_comment.todo_id == test_todo_with_accepted_task_offer.id
+        assert created_comment.comment_owner == test_user3.id
+
+    async def test_non_tasktaker_or_todo_owner_can_comment_task(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user: UserInDB,
+        test_user3: UserInDB,
+        test_todo_with_accepted_task_offer: TodoInDB,
+    ) -> None:
+        """User who's not a todo owner or tasktaker cannot comment a task."""
+        new_comment = CommentCreate(body="test comments")
+        authorized_client = create_authorized_client(user=test_user)
+        res = await authorized_client.post(
+            app.url_path_for(
+                "comments:create-comment-task",
+                todo_id=test_todo_with_accepted_task_offer.id,
+                username=test_user3.username,
+            ),
+            json={"new_comment": jsonable_encoder(new_comment.dict())},
+        )
+        assert res.status_code == status.HTTP_403_FORBIDDEN
+
     async def test_valid_input_not_create_comment_on_other_todo(
         self,
         app: FastAPI,
@@ -72,7 +133,7 @@ class TestCreateComment:
         test_todo_2: TodoInDB,
     ) -> None:
         """Check comments with valid inputs."""
-        new_comment = CommentCreate(body="test comments")
+        new_comment = CommentCreate(body="test comments", task=True)
         res = await authorized_client.post(
             app.url_path_for("comments:create-comment-todo", todo_id=test_todo_2.id),
             json={"new_comment": jsonable_encoder(new_comment.dict())},
@@ -86,19 +147,63 @@ class TestCreateComment:
         test_user: UserInDB,
     ) -> None:
         """Test non existing todos cannot be commented."""
-        new_comment = CommentCreate(body="test comments")
+        new_comment = CommentCreate(body="test comments", task=True)
         res = await authorized_client.post(
             app.url_path_for("comments:create-comment-todo", todo_id=5555),
             json={"new_comment": jsonable_encoder(new_comment.dict())},
         )
         assert res.status_code == status.HTTP_404_NOT_FOUND
 
-    async def test_unauthorized_user_unable_to_create_comment(
+    async def test_comment_non_existing_task(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user2: UserInDB,
+        test_user3: UserInDB,
+        test_todo: TodoInDB,
+        test_todo_with_accepted_task_offer: TodoInDB,
+    ) -> None:
+        """Test non existing task cannot be commented."""
+        new_comment = CommentCreate(body="test comments", task=True)
+        authorized_client = create_authorized_client(user=test_user2)
+        res = await authorized_client.post(
+            app.url_path_for(
+                "comments:create-comment-task",
+                todo_id=test_todo.id,
+                username=test_user3.username,
+            ),
+            json={"new_comment": jsonable_encoder(new_comment.dict())},
+        )
+        assert res.status_code == status.HTTP_404_NOT_FOUND
+
+    async def test_unauthorized_user_unable_to_create_comment_for_todo(
         self, app: FastAPI, client: AsyncClient, test_todo: TodoInDB, new_comment: CommentInDB
     ) -> None:
         """Test unauthorized users cannot comment."""
         res = await client.post(
             app.url_path_for("comments:create-comment-todo", todo_id=test_todo.id),
+            json={"new_comment": jsonable_encoder(new_comment.dict())},
+        )
+        assert res.status_code == status.HTTP_401_UNAUTHORIZED
+        assert res.status_code != status.HTTP_200_OK
+
+    async def test_unauthorized_user_unable_to_create_comment_for_task(
+        self,
+        app: FastAPI,
+        client: AsyncClient,
+        test_todo: TodoInDB,
+        new_comment: CommentInDB,
+        test_user3: UserInDB,
+        test_todo_with_accepted_task_offer: TodoInDB,
+    ) -> None:
+        """Test unauthorized users cannot comment."""
+        new_comment = CommentCreate(body="test comments", task=True)
+        res = await client.post(
+            app.url_path_for(
+                "comments:create-comment-task",
+                todo_id=test_todo_with_accepted_task_offer.id,
+                username=test_user3.username,
+            ),
             json={"new_comment": jsonable_encoder(new_comment.dict())},
         )
         assert res.status_code == status.HTTP_401_UNAUTHORIZED
@@ -115,14 +220,30 @@ class TestCreateComment:
         self,
         app: FastAPI,
         authorized_client: AsyncClient,
+        create_authorized_client: Callable,
         invalid_payload: Dict[str, Union[str, float]],
-        test_comment: CommentInDB,
         test_todo: TodoInDB,
+        test_user2: UserInDB,
+        test_user3: UserInDB,
+        test_todo_with_accepted_task_offer: TodoInDB,
         status_code: int,
     ) -> None:
         """Testing error raised when invalid input is given for comments."""
+        # for todo
         res = await authorized_client.post(
             app.url_path_for("comments:create-comment-todo", todo_id=test_todo.id),
+            json={"new_comment": jsonable_encoder(invalid_payload)},
+        )
+        assert res.status_code == status_code
+
+        # for taak
+        authorized_client = create_authorized_client(user=test_user2)
+        res = await authorized_client.post(
+            app.url_path_for(
+                "comments:create-comment-task",
+                todo_id=test_todo_with_accepted_task_offer.id,
+                username=test_user3.username,
+            ),
             json={"new_comment": jsonable_encoder(invalid_payload)},
         )
         assert res.status_code == status_code
@@ -286,8 +407,13 @@ class TestGetComment:
         test_todo: TodoInDB,
         test_comment: CommentInDB,
         test_comment_2: CommentInDB,
+        create_authorized_client: Callable,
+        test_user2: UserInDB,
+        test_user3: UserInDB,
+        test_todo_with_accepted_task_offer: TodoInDB,
     ) -> None:
         """Test all todos comments can be requested."""
+        # for todo
         res = await authorized_client.get(app.url_path_for("todos:list-all-todo-comments", todo_id=test_todo.id))
         assert res.status_code == status.HTTP_200_OK
         assert isinstance(res.json(), list)
@@ -295,6 +421,49 @@ class TestGetComment:
         comments = [CommentInDB(**comment) for comment in res.json()]
         assert test_comment in comments
         assert test_comment_2 in comments
+
+        # for task
+        # create comment
+        new_comment = CommentCreate(body="test comments", task=True)
+        authorized_client = create_authorized_client(user=test_user2)
+        res = await authorized_client.post(
+            app.url_path_for(
+                "comments:create-comment-task",
+                todo_id=test_todo_with_accepted_task_offer.id,
+                username=test_user3.username,
+            ),
+            json={"new_comment": jsonable_encoder(new_comment.dict())},
+        )
+        assert res.status_code == status.HTTP_201_CREATED
+        created_comment_1 = CommentPublic(**res.json())
+
+        new_comment = CommentCreate(body="test comments", task=True)
+        authorized_client = create_authorized_client(user=test_user3)
+        res = await authorized_client.post(
+            app.url_path_for(
+                "comments:create-comment-task",
+                todo_id=test_todo_with_accepted_task_offer.id,
+                username=test_user3.username,
+            ),
+            json={"new_comment": jsonable_encoder(new_comment.dict())},
+        )
+        assert res.status_code == status.HTTP_201_CREATED
+        created_comment_2 = CommentPublic(**res.json())
+
+        res = await authorized_client.get(
+            app.url_path_for(
+                "task:list-all-task-comments",
+                todo_id=test_todo_with_accepted_task_offer.id,
+                username=test_user3.username,
+            ),
+        )
+        assert res.status_code == status.HTTP_200_OK
+        assert isinstance(res.json(), list)
+        assert len(res.json()) > 0
+        comments = [CommentInDB(**comment) for comment in res.json()]
+        assert created_comment_1 in comments
+        assert created_comment_2 in comments
+        assert test_comment not in comments
 
     async def test_get_all_user_comment(
         self,

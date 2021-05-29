@@ -55,7 +55,7 @@ def check_comment_task_permission(
     task: TaskInDB = Depends(get_offer_for_task_from_user_by_path),
 ):
     """Permission for task owner and task taker to comment on a task."""
-    if (not user_owns_todo(user=current_user, todo=todo)) or (not (task.user_id == current_user.id)):
+    if (not user_owns_todo(user=current_user, todo=todo)) and (not (task.user_id == current_user.id)):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Users are unable to leave comments for todos or tasks they don't own.",
@@ -66,8 +66,8 @@ def check_comment_task_permission(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Only users accepted tasks can be commented."
         )
     # check that comments can only be made for user whose offer for task was accepted for a job.
-    # if task.user_id != tasktaker.id:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_400_BAD_REQUEST,
-    #         detail="You are not authorized to leave an comments...",
-    #     )
+    if task.user_id != tasktaker.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You are not authorized to leave an comments...",
+        )
