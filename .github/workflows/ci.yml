@@ -25,10 +25,6 @@ jobs:
       - name: Build the Stack
         run:  docker-compose up -d
 
-      - name: Sleep for 5 seconds
-        uses: jakejarvis/wait-action@master
-        with:
-          time: '5s'
 
       #- name: Run DB Migrations alembic
         # run:  docker-compose run --rm django python manage.py migrate
