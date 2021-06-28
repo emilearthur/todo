@@ -30,9 +30,9 @@ jobs:
         with:
           time: '5s'
 
-      - name: Run DB Migrations alembic
+      #- name: Run DB Migrations alembic
         # run:  docker-compose run --rm django python manage.py migrate
-        run:  docker-compose run --rm alembic upgrade head
+        #run:  docker-compose run --rm alembic upgrade head
 
       - name: Run Django Tests
         run:  docker-compose run pytest
