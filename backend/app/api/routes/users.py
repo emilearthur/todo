@@ -15,8 +15,6 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 router = APIRouter()
 
-# TODO: Add the ability to comment on a task. i.e. between the task owner and task taker.
-
 
 @router.post("/", response_model=UserPublic, name="users:register-new-user", status_code=status.HTTP_201_CREATED)
 async def register_new_user(

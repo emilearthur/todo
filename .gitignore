@@ -1,8 +1,6 @@
 # Byte-compiled files
 __pycache__/
 # Environment files
-.env
-*.env
 .travis.yml
 pytest.ini
 .devcontainer
