@@ -31,7 +31,7 @@ jobs:
         #run:  docker-compose run --rm alembic upgrade head
 
       - name: Run Tests
-        run:  docker exec todo_server_1 python -m pytest
+        run:  docker exec todo_server_1 python -m pytest --cov
 
       - name: Tear down the Stack
         run:  docker-compose down
