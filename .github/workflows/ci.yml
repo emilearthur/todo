@@ -34,8 +34,8 @@ jobs:
         # run:  docker-compose run --rm django python manage.py migrate
         #run:  docker-compose run --rm alembic upgrade head
 
-      - name: Run Django Tests
-        run:  docker-compose run pytest
+      - name: Run Tests
+        run:  docker exec todo_server_1 python -m pytest
 
       - name: Tear down the Stack
         run:  docker-compose down
