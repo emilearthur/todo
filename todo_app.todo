@@ -1,0 +1,15 @@
+Todos:
+    - Add user registeration via google auth. - future addition
+    - Add notes summary endpoint to todo - not needed.
+Done:
+    - Added email verification.
+    - added comments endpoint, get user comments and get too comments. 
+    - Add todo share feature - ie. task
+        - User shares todo with another.
+        - The other accepts/rescind the todo
+            - If other accepts todo:
+                - updated that todo.status has been accpeted.
+                - add todo to user's todo. 
+                - else todo.staus is rescinded and todo and set due date is set to date it was rescinded.
+    - Add user_id to todo 
+    - Update db with user_id as foreign key. 
