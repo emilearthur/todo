@@ -3,10 +3,16 @@ __pycache__/
 # Environment files
 .travis.yml
 pytest.ini
-.devcontainer
+.devcontainer/
+*.todo
+*.out
+redis-data/
+*.pyc
 
 # Unit test / coverage reports
 htmlcov/
+.mypy_cache/
+.pytest_cache/
 html_coverage_report/
 .tox/
 .coverage
