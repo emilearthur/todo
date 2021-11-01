@@ -30,7 +30,7 @@ from redis.client import Redis
 # apply migration at beginning and end of testing session
 @pytest.fixture(scope="session")
 def apply_migrations():
-    """Handle db migrations."""
+    """Handle db migrations. check test here"""
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     os.environ["TESTING"] = "1"
     config = Config("alembic.ini")
